@@ -16,7 +16,7 @@ OBJ_DIR ?= $(BIN_DIR)/objs
 TIDYFLAGS=-checks=* -warnings-as-errors=*
 
 CFLAGS_WARN += -Wall -Wextra -pedantic -Werror -Wshadow
-CFLAGS += -fPIC $(CFLAGS_WARN) -I$(INC_DIR) -I$(INC_GLOBAL) 
+CFLAGS += -fPIC $(CFLAGS_WARN) -I$(INC_DIR) -I$(INC_GLOBAL) -Os
 
 SRCS ?= $(wildcard $(SRC_DIR)/*.c)
 OBJS ?= $(patsubst $(SRC_DIR)/%.c,$(OBJ_DIR)/%.o,$(SRCS))
