@@ -46,6 +46,9 @@ uint8_t nanocbor_get_type(nanocbor_value_t *value)
 
 bool nanocbor_at_end(nanocbor_value_t *it)
 {
+    if (it->start >= it->end) {
+        return true;
+    }
     if (it->flags & NANOCBOR_DECODER_FLAG_CONTAINER) {
         if (it->flags & NANOCBOR_DECODER_FLAG_INDEFINITE &&
             *it->start == 0xFFU) {
@@ -54,7 +57,7 @@ bool nanocbor_at_end(nanocbor_value_t *it)
         }
         return it->remaining == 0;
     }
-    return it->start >= it->end;
+    return false;
 }
 
 static int _get_uint64(nanocbor_value_t *cvalue, uint64_t *value, uint8_t max, uint8_t type)
@@ -138,7 +141,6 @@ static int _get_str(nanocbor_value_t *cvalue, const uint8_t **buf, size_t *len, 
 {
     *len = 0;
     int res = _get_uint64(cvalue, (uint64_t *)len, NANOCBOR_INT_VAL_SIZE, type);
-
 
     if (cvalue->end - cvalue->start < 0 || (size_t)(cvalue->end - cvalue->start) < *len) {
         return NANOCBOR_ERR_END;
