@@ -26,125 +26,174 @@
 
 #include NANOCBOR_BYTEORDER_HEADER
 
-size_t nanocbor_fmt_bool(uint8_t *buf, bool content)
+void nanocbor_encoder_init(nanocbor_encoder_t *enc, uint8_t *buf, size_t len)
 {
-    *buf = NANOCBOR_MASK_FLOAT | (content ? NANOCBOR_SIMPLE_TRUE
-                                  : NANOCBOR_SIMPLE_FALSE);
-    return 1;
+    enc->len = 0;
+    enc->cur = buf;
+    enc->end = buf + len;
 }
 
-static size_t _fmt_uint32(uint8_t *buf, uint32_t num, uint8_t type)
+size_t nanocbor_encoded_len(nanocbor_encoder_t *enc)
 {
-    if (num < 24U) {
-        *buf = type | num;
-        return 1;
-    }
-    if (num <= UINT8_MAX) {
-        *buf++ = type | NANOCBOR_SIZE_BYTE;
-        *buf = num;
-        return 2;
-    }
-    if (num <= UINT16_MAX) {
-        *buf++ = type | NANOCBOR_SIZE_SHORT;
-        *buf++ = ((num & 0xff00U) >> 8U) & 0xffU;
-        *buf =  num & 0x00ffU;
-        return 3;
-    }
-    /* Word size */
-    *buf++ = type | NANOCBOR_SIZE_WORD;
-    /* NOLINTNEXTLINE: user supplied function */
-    uint32_t bnum = NANOCBOR_HTOBE32_FUNC(num);
-    memcpy(buf, &bnum, sizeof(bnum));
-    return 5;
+    return enc->len;
 }
 
-size_t nanocbor_fmt_uint(uint8_t *buf, uint32_t num)
+static int _fits(nanocbor_encoder_t *enc, size_t len)
 {
-    return _fmt_uint32(buf, num, NANOCBOR_MASK_UINT);
+    enc->len += len;
+    return ((size_t)(enc->end - enc->cur) >= len) ? 0 : -1;
 }
 
-size_t nanocbor_fmt_int(uint8_t *buf, int32_t num)
+static int _fmt_single(nanocbor_encoder_t *enc, uint8_t single)
+{
+    int res = _fits(enc, 1);
+
+    if (res == 0) {
+        *enc->cur++ = single;
+    }
+    return res;
+}
+
+int nanocbor_fmt_bool(nanocbor_encoder_t *enc, bool content)
+{
+    uint8_t single = NANOCBOR_MASK_FLOAT | (content ? NANOCBOR_SIMPLE_TRUE
+                                            : NANOCBOR_SIMPLE_FALSE);
+
+    return _fmt_single(enc, single);
+}
+
+static int _fmt_uint64(nanocbor_encoder_t *enc, uint64_t num, uint8_t type)
+{
+    unsigned extrabytes = 0;
+
+    if (num < NANOCBOR_SIZE_BYTE) {
+        type |= num;
+    }
+    else {
+        if (num > UINT32_MAX) {
+            /* Requires long size */
+            type |= NANOCBOR_SIZE_LONG;
+            extrabytes = 8;
+        }
+        else if (num > UINT16_MAX) {
+            /* At least word size */
+            type |= NANOCBOR_SIZE_WORD;
+            extrabytes = 4;
+        }
+        else if (num > UINT8_MAX) {
+            type |= NANOCBOR_SIZE_SHORT;
+            extrabytes = 2;
+        }
+        else {
+            type |= NANOCBOR_SIZE_BYTE;
+            extrabytes = 1;
+        }
+    }
+    int res = _fits(enc, extrabytes + 1);
+    if (res == 0) {
+        *enc->cur++ = type;
+
+        /* NOLINTNEXTLINE: user supplied function */
+        uint64_t benum = NANOCBOR_HTOBE64_FUNC(num);
+
+        memcpy(enc->cur, (uint8_t *)&benum + sizeof(benum) - extrabytes,
+               extrabytes);
+        enc->cur += extrabytes;
+    }
+    return res;
+}
+
+int nanocbor_fmt_uint(nanocbor_encoder_t *enc, uint64_t num)
+{
+    return _fmt_uint64(enc, num, NANOCBOR_MASK_UINT);
+}
+
+int nanocbor_fmt_int(nanocbor_encoder_t *enc, int64_t num)
 {
     if (num < 0) {
         /* Always negative at this point */
         num = -1 * (num + 1);
-        return _fmt_uint32(buf, num, NANOCBOR_MASK_NINT);
+        return _fmt_uint64(enc, num, NANOCBOR_MASK_NINT);
     }
-    return nanocbor_fmt_uint(buf, (uint32_t)num);
+    return nanocbor_fmt_uint(enc, (uint64_t)num);
 }
 
-size_t nanocbor_fmt_bstr(uint8_t *buf, size_t len)
+int nanocbor_fmt_bstr(nanocbor_encoder_t *enc, size_t len)
 {
-    return _fmt_uint32(buf, (uint32_t)len, NANOCBOR_MASK_BSTR);
+    return _fmt_uint64(enc, (uint64_t)len, NANOCBOR_MASK_BSTR);
 }
 
-size_t nanocbor_fmt_tstr(uint8_t *buf, size_t len)
+int nanocbor_fmt_tstr(nanocbor_encoder_t *enc, size_t len)
 {
-    return _fmt_uint32(buf, (uint32_t)len, NANOCBOR_MASK_TSTR);
+    return _fmt_uint64(enc, (uint64_t)len, NANOCBOR_MASK_TSTR);
 }
 
-size_t nanocbor_put_tstr(uint8_t *buf, char *str)
+static int _put_bytes(nanocbor_encoder_t *enc, uint8_t *str, size_t len)
+{
+    int res = _fits(enc, len);
+
+    if (res == 0) {
+        memcpy(enc->cur, str, len);
+        enc->cur += len;
+    }
+    return res;
+}
+
+int nanocbor_put_tstr(nanocbor_encoder_t *enc, char *str)
 {
     size_t len = strlen(str);
-    size_t hdrlen = nanocbor_fmt_tstr(buf, len);
 
-    memcpy(buf + hdrlen, str, len);
-    return hdrlen + len;
+    nanocbor_fmt_tstr(enc, len);
+    return _put_bytes(enc, (uint8_t *)str, len);
 }
 
-size_t nanocbor_put_bstr(uint8_t *buf, char *str, size_t len)
+int nanocbor_put_bstr(nanocbor_encoder_t *enc, uint8_t *str, size_t len)
 {
-    size_t hdrlen = nanocbor_fmt_bstr(buf, len);
-
-    memcpy(buf + hdrlen, str, len);
-    return hdrlen + len;
+    nanocbor_fmt_bstr(enc, len);
+    return _put_bytes(enc, str, len);
 }
 
-size_t nanocbor_fmt_array(uint8_t *buf, size_t len)
+int nanocbor_fmt_array(nanocbor_encoder_t *enc, size_t len)
 {
-    return _fmt_uint32(buf, (uint32_t)len, NANOCBOR_MASK_ARR);
+    return _fmt_uint64(enc, (uint64_t)len, NANOCBOR_MASK_ARR);
 }
 
-size_t nanocbor_fmt_map(uint8_t *buf, size_t len)
+int nanocbor_fmt_map(nanocbor_encoder_t *enc, size_t len)
 {
-    return _fmt_uint32(buf, (uint32_t)len, NANOCBOR_MASK_MAP);
+    return _fmt_uint64(enc, (uint64_t)len, NANOCBOR_MASK_MAP);
 }
 
-size_t nanocbor_fmt_array_indefinite(uint8_t *buf)
+int nanocbor_fmt_array_indefinite(nanocbor_encoder_t *enc)
 {
-    *buf = NANOCBOR_MASK_ARR | NANOCBOR_SIZE_INDEFINITE;
-    return 1;
+    return _fmt_single(enc, NANOCBOR_MASK_ARR | NANOCBOR_SIZE_INDEFINITE);
 }
 
-size_t nanocbor_fmt_map_indefinite(uint8_t *buf)
+int nanocbor_fmt_map_indefinite(nanocbor_encoder_t *enc)
 {
-    *buf = NANOCBOR_MASK_ARR | NANOCBOR_SIZE_INDEFINITE;
-    return 1;
+    return _fmt_single(enc, NANOCBOR_MASK_MAP | NANOCBOR_SIZE_INDEFINITE);
 }
 
-size_t nanocbor_fmt_end_indefinite(uint8_t *buf)
+int nanocbor_fmt_end_indefinite(nanocbor_encoder_t *enc)
 {
     /* End is marked with float major and indefinite minor number */
-    *buf = NANOCBOR_MASK_FLOAT | NANOCBOR_SIZE_INDEFINITE;
-    return 1;
+    return _fmt_single(enc, NANOCBOR_MASK_FLOAT | NANOCBOR_SIZE_INDEFINITE);
 }
 
-size_t nanocbor_fmt_null(uint8_t *buf)
+int nanocbor_fmt_null(nanocbor_encoder_t *enc)
 {
-    *buf = NANOCBOR_MASK_FLOAT | NANOCBOR_SIMPLE_NULL;
-    return 1;
+    return _fmt_single(enc, NANOCBOR_MASK_FLOAT | NANOCBOR_SIMPLE_NULL);
 }
 
 #define FLOAT_EXP_OFFSET   (127U)
 #define HALF_EXP_OFFSET     (15U)
 
-size_t nanocbor_fmt_float(uint8_t *buf, float num)
+int nanocbor_fmt_float(nanocbor_encoder_t *enc, float num)
 {
     /* Check if lower 13 bits of fraction are zero, if so we might be able to
      * convert without precision loss */
     uint32_t *unum = (uint32_t *)&num;
 
-#ifdef MODULE_NANOCBOR_HALFFLOAT
+#if 0
     uint8_t exp = (*unum >> 23) & 0xff;
     /* Copy sign bit */
     uint16_t half = ((*unum >> 16) & 0x8000);
@@ -163,13 +212,17 @@ size_t nanocbor_fmt_float(uint8_t *buf, float num)
         *buf++ = NANOCBOR_MASK_FLOAT | NANOCBOR_SIZE_SHORT;
         *buf++ = ((half & 0xff00) >> 8) & 0xff;
         *buf =  half & 0x00ff;
-        return 3;
+        return 0;
     }
 #endif
     /* normal float */
-    *buf++ = NANOCBOR_MASK_FLOAT | NANOCBOR_SIZE_WORD;
-    /* NOLINTNEXTLINE: user supplied function */
-    uint32_t bnum = NANOCBOR_HTOBE32_FUNC(*unum);
-    memcpy(buf, &bnum, sizeof(bnum));
-    return 5;
+    int res = _fits(enc, 5);
+    if (res == 0) {
+        *enc->cur++ = NANOCBOR_MASK_FLOAT | NANOCBOR_SIZE_WORD;
+        /* NOLINTNEXTLINE: user supplied function */
+        uint32_t bnum = NANOCBOR_HTOBE32_FUNC(*unum);
+        memcpy(enc->cur, &bnum, sizeof(bnum));
+        enc->cur += 4;
+    }
+    return res;
 }

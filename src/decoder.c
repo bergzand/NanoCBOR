@@ -47,6 +47,7 @@ uint8_t nanocbor_get_type(nanocbor_value_t *value)
 bool nanocbor_at_end(nanocbor_value_t *it)
 {
     bool overflow = it->start >= it->end;
+
     if (it->flags & NANOCBOR_DECODER_FLAG_CONTAINER) {
         if (it->flags & NANOCBOR_DECODER_FLAG_INDEFINITE &&
             *it->start == 0xFFU) {
@@ -91,7 +92,7 @@ static int _get_uint64(nanocbor_value_t *cvalue, uint64_t *value, uint8_t max, u
 static int _get_nint32(nanocbor_value_t *cvalue, int32_t *value, uint8_t type)
 {
     uint32_t tmp = 0;
-    int res = _get_uint64(cvalue, (uint64_t *)&tmp, NANOCBOR_INT_VAL_UINT32, type);
+    int res = _get_uint64(cvalue, (uint64_t *)&tmp, NANOCBOR_SIZE_WORD, type);
 
     if (tmp <= INT32_MAX) {
         *value = (-(int32_t)tmp) - 1;
@@ -117,7 +118,8 @@ static int _advance_if(nanocbor_value_t *cvalue, int res)
 /* Includes check */
 int nanocbor_get_uint32(nanocbor_value_t *cvalue, uint32_t *value)
 {
-    int res = _get_uint64(cvalue, (uint64_t *)value, NANOCBOR_INT_VAL_UINT32, NANOCBOR_MASK_UINT);
+    int res = _get_uint64(cvalue, (uint64_t *)value, NANOCBOR_SIZE_WORD,
+                          NANOCBOR_MASK_UINT);
 
     return _advance_if(cvalue, res);
 }
@@ -126,7 +128,8 @@ int nanocbor_get_uint32(nanocbor_value_t *cvalue, uint32_t *value)
 int nanocbor_get_int32(nanocbor_value_t *cvalue, int32_t *value)
 {
     uint32_t intermediate = 0;
-    int res = _get_uint64(cvalue, (uint64_t *)&intermediate, NANOCBOR_INT_VAL_UINT32, NANOCBOR_MASK_UINT);
+    int res = _get_uint64(cvalue, (uint64_t *)&intermediate,
+                          NANOCBOR_SIZE_WORD, NANOCBOR_MASK_UINT);
 
     *value = intermediate;
     if (res == NANOCBOR_ERR_INVALID_TYPE) {
@@ -138,7 +141,7 @@ int nanocbor_get_int32(nanocbor_value_t *cvalue, int32_t *value)
 static int _get_str(nanocbor_value_t *cvalue, const uint8_t **buf, size_t *len, uint8_t type)
 {
     *len = 0;
-    int res = _get_uint64(cvalue, (uint64_t *)len, NANOCBOR_INT_VAL_SIZE, type);
+    int res = _get_uint64(cvalue, (uint64_t *)len, NANOCBOR_SIZE_SIZET, type);
 
     if (cvalue->end - cvalue->start < 0 || (size_t)(cvalue->end - cvalue->start) < *len) {
         return NANOCBOR_ERR_END;
@@ -192,7 +195,8 @@ int _enter_container(nanocbor_value_t *it, nanocbor_value_t *container, uint8_t 
         container->start = it->start + 1;
     }
     else {
-        int res = _get_uint64(it, (uint64_t *)&container->remaining, NANOCBOR_INT_VAL_UINT32, type);
+        int res = _get_uint64(it, (uint64_t *)&container->remaining,
+                              NANOCBOR_SIZE_WORD, type);
         if (res < 0) {
             return res;
         }
@@ -231,7 +235,7 @@ static int _skip_simple(nanocbor_value_t *it)
 {
     uint64_t tmp;
     int res = _advance_if(it, _get_uint64(it, &tmp,
-                                          NANOCBOR_INT_VAL_UINT64, _get_type(it)));
+                                          NANOCBOR_SIZE_LONG, _get_type(it)));
 
     (void)tmp;
     return res;

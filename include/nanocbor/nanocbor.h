@@ -82,22 +82,13 @@ extern "C" {
 /** @} */
 
 /**
- * @name CBOR integer special size values
- * @{
- */
-#define NANOCBOR_INT_VAL_UINT8          24U
-#define NANOCBOR_INT_VAL_UINT16         25U
-#define NANOCBOR_INT_VAL_UINT32         26U
-#define NANOCBOR_INT_VAL_UINT64         27U
-/** @} */
-
-/**
  * @name CBOR data sizes
  * @{
  */
 #define NANOCBOR_SIZE_BYTE          24U
 #define NANOCBOR_SIZE_SHORT         25U
 #define NANOCBOR_SIZE_WORD          26U
+#define NANOCBOR_SIZE_LONG          27U
 #define NANOCBOR_SIZE_INDEFINITE    31U
 /** @} */
 
@@ -116,6 +107,12 @@ typedef struct nanocbor_value {
     uint32_t remaining;
     uint8_t flags;
 } nanocbor_value_t;
+
+typedef struct nanocbor_encoder {
+    uint8_t *cur;
+    uint8_t *end;
+    size_t len;
+} nanocbor_encoder_t;
 
 #define NANOCBOR_DECODER_FLAG_CONTAINER  (0x01U)
 #define NANOCBOR_DECODER_FLAG_INDEFINITE (0x02U)
@@ -136,6 +133,11 @@ int nanocbor_get_bool(nanocbor_value_t *cvalue, bool *value);
 int nanocbor_skip(nanocbor_value_t *it);
 int nanocbor_skip_simple(nanocbor_value_t *it);
 
+void nanocbor_encoder_init(nanocbor_encoder_t *enc,
+                           uint8_t *buf, size_t len);
+size_t nanocbor_encoded_len(nanocbor_encoder_t *enc);
+int nanocbor_fmt_null(nanocbor_encoder_t *enc);
+
 /**
  * @brief Write a CBOR boolean value into a buffer
  *
@@ -144,7 +146,7 @@ int nanocbor_skip_simple(nanocbor_value_t *it);
  *
  * @return              Number of bytes written
  */
-size_t nanocbor_fmt_bool(uint8_t *buf, bool content);
+int nanocbor_fmt_bool(nanocbor_encoder_t *enc, bool content);
 
 /**
  * @brief Write an unsigned integer of at most sizeof uint32_t into the buffer
@@ -154,7 +156,7 @@ size_t nanocbor_fmt_bool(uint8_t *buf, bool content);
  *
  * @return  number of bytes written
  */
-size_t nanocbor_fmt_uint(uint8_t *buf, uint32_t num);
+int nanocbor_fmt_uint(nanocbor_encoder_t *enc, uint64_t num);
 
 /**
  * @brief Write a signed integer of at most sizeof int32_t into the buffer
@@ -166,10 +168,12 @@ size_t nanocbor_fmt_uint(uint8_t *buf, uint32_t num);
  *
  * @return  number of bytes written
  */
-size_t nanocbor_fmt_int(uint8_t *buf, int32_t num);
+int nanocbor_fmt_int(nanocbor_encoder_t *enc, int64_t num);
 
-size_t nanocbor_fmt_bstr(uint8_t *buf, size_t len);
-size_t nanocbor_fmt_tstr(uint8_t *buf, size_t len);
+int nanocbor_fmt_bstr(nanocbor_encoder_t *enc, size_t len);
+int nanocbor_fmt_tstr(nanocbor_encoder_t *enc, size_t len);
+int nanocbor_put_tstr(nanocbor_encoder_t *enc, char *str);
+int nanocbor_put_bstr(nanocbor_encoder_t *enc, uint8_t *str, size_t len);
 
 /**
  * @brief Write an array indicator with @ref len items
@@ -179,7 +183,7 @@ size_t nanocbor_fmt_tstr(uint8_t *buf, size_t len);
  *
  * @return              Number of bytes written
  */
-size_t nanocbor_fmt_array(uint8_t *buf, size_t len);
+int nanocbor_fmt_array(nanocbor_encoder_t *enc, size_t len);
 
 /**
  * @brief Write a map indicator with @ref len pairs
@@ -189,7 +193,7 @@ size_t nanocbor_fmt_array(uint8_t *buf, size_t len);
  *
  * @return              Number of bytes written
  */
-size_t nanocbor_fmt_map(uint8_t *buf, size_t len);
+int nanocbor_fmt_map(nanocbor_encoder_t *enc, size_t len);
 
 /**
  * @brief Write an indefinite-length array indicator
@@ -198,7 +202,7 @@ size_t nanocbor_fmt_map(uint8_t *buf, size_t len);
  *
  * @return              Number of bytes written
  */
-size_t nanocbor_fmt_array_indefinite(uint8_t *buf);
+int nanocbor_fmt_array_indefinite(nanocbor_encoder_t *enc);
 
 /**
  * @brief Write an indefinite-length map indicator
@@ -207,9 +211,10 @@ size_t nanocbor_fmt_array_indefinite(uint8_t *buf);
  *
  * @return              Number of bytes written
  */
-size_t nanocbor_fmt_map_indefinite(uint8_t *buf);
+int nanocbor_fmt_map_indefinite(nanocbor_encoder_t *enc);
+int nanocbor_fmt_end_indefinite(nanocbor_encoder_t *enc);
 
-size_t nanocbor_fmt_float(uint8_t *buf, float num);
+int nanocbor_fmt_float(nanocbor_encoder_t *enc, float num);
 
 #ifdef __cplusplus
 }

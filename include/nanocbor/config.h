@@ -42,7 +42,16 @@ extern "C" {
 #endif
 
 /**
- * @brief call providing htonll or htobe32 or equivalent functionality
+ * @brief call providing htonll or htobe64 or equivalent functionality
+ *
+ * must take a uint64_t in host endianess and return the big endian value
+ */
+#ifndef NANOCBOR_HTOBE64_FUNC
+#define NANOCBOR_HTOBE64_FUNC(he)   htobe64(he)
+#endif
+
+/**
+ * @brief call providing htonl or htobe32 or equivalent functionality
  *
  * must take a uint32_t in host endianess and return the big endian value
  */
@@ -53,13 +62,13 @@ extern "C" {
 /**
  * @brief configuration for size_t SIZE_MAX equivalent
  */
-#ifndef NANOCBOR_INT_VAL_SIZE
+#ifndef NANOCBOR_SIZE_SIZET
 #if (SIZE_MAX == UINT16_MAX)
-#define NANOCBOR_INT_VAL_SIZE           NANOCBOR_INT_VAL_UINT16
+#define NANOCBOR_SIZE_SIZET           NANOCBOR_SIZE_SHORT
 #elif (SIZE_MAX == UINT32_MAX)
-#define NANOCBOR_INT_VAL_SIZE           NANOCBOR_INT_VAL_UINT32
+#define NANOCBOR_SIZE_SIZET           NANOCBOR_SIZE_WORD
 #elif (SIZE_MAX == UINT64_MAX)
-#define NANOCBOR_INT_VAL_SIZE           NANOCBOR_INT_VAL_UINT64
+#define NANOCBOR_SIZE_SIZET           NANOCBOR_SIZE_LONG
 #else
 #error ERROR: unable to determine maximum size of size_t
 #endif
