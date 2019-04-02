@@ -26,8 +26,6 @@
 
 #include NANOCBOR_BYTEORDER_HEADER
 
-#include <endian.h>
-
 void nanocbor_decoder_init(nanocbor_value_t *value,
                            const uint8_t *buf, size_t len)
 {
