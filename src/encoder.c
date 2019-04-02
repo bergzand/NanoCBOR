@@ -20,40 +20,42 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include "nanocbor/nanocbor.h"
+
 #include "nanocbor/config.h"
+#include "nanocbor/nanocbor.h"
+
 #include NANOCBOR_BYTEORDER_HEADER
 
 size_t nanocbor_fmt_bool(uint8_t *buf, bool content)
 {
     *buf = NANOCBOR_MASK_FLOAT | (content ? NANOCBOR_SIMPLE_TRUE
-                                          : NANOCBOR_SIMPLE_FALSE);
+                                  : NANOCBOR_SIMPLE_FALSE);
     return 1;
 }
 
 static size_t _fmt_uint32(uint8_t *buf, uint32_t num, uint8_t type)
 {
-    if (num < 23) {
+    if (num < 24U) {
         *buf = type | num;
         return 1;
     }
-    else if (num <= UINT8_MAX) {
+    if (num <= UINT8_MAX) {
         *buf++ = type | NANOCBOR_SIZE_BYTE;
         *buf = num;
         return 2;
     }
-    else if (num <= UINT16_MAX) {
+    if (num <= UINT16_MAX) {
         *buf++ = type | NANOCBOR_SIZE_SHORT;
-        *buf++ = ((num & 0xff00) >> 8) & 0xff;
-        *buf =  num & 0x00ff;
+        *buf++ = ((num & 0xff00U) >> 8U) & 0xffU;
+        *buf =  num & 0x00ffU;
         return 3;
     }
-    else {
-        *buf++ = type | NANOCBOR_SIZE_WORD;
-        uint32_t bnum = NANOCBOR_HTOBE32_FUNC(num);
-        memcpy(buf, &bnum, sizeof(bnum));
-        return 5;
-    }
+    /* Word size */
+    *buf++ = type | NANOCBOR_SIZE_WORD;
+    /* NOLINTNEXTLINE: user supplied function */
+    uint32_t bnum = NANOCBOR_HTOBE32_FUNC(num);
+    memcpy(buf, &bnum, sizeof(bnum));
+    return 5;
 }
 
 size_t nanocbor_fmt_uint(uint8_t *buf, uint32_t num)
@@ -68,9 +70,7 @@ size_t nanocbor_fmt_int(uint8_t *buf, int32_t num)
         num = -1 * (num + 1);
         return _fmt_uint32(buf, num, NANOCBOR_MASK_NINT);
     }
-    else {
-        return nanocbor_fmt_uint(buf, (uint32_t)num);
-    }
+    return nanocbor_fmt_uint(buf, (uint32_t)num);
 }
 
 size_t nanocbor_fmt_bstr(uint8_t *buf, size_t len)
@@ -168,6 +168,7 @@ size_t nanocbor_fmt_float(uint8_t *buf, float num)
 #endif
     /* normal float */
     *buf++ = NANOCBOR_MASK_FLOAT | NANOCBOR_SIZE_WORD;
+    /* NOLINTNEXTLINE: user supplied function */
     uint32_t bnum = NANOCBOR_HTOBE32_FUNC(*unum);
     memcpy(buf, &bnum, sizeof(bnum));
     return 5;

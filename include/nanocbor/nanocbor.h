@@ -45,17 +45,17 @@ extern "C" {
 #endif
 
 #define NANOCBOR_TYPE_OFFSET    (5U)
-#define NANOCBOR_TYPE_MASK      0xE0
-#define NANOCBOR_VALUE_MASK     0x1F
+#define NANOCBOR_TYPE_MASK      0xE0U
+#define NANOCBOR_VALUE_MASK     0x1FU
 
-#define NANOCBOR_TYPE_UINT      (0x00)
-#define NANOCBOR_TYPE_NINT      (0x01)
-#define NANOCBOR_TYPE_BSTR      (0x02)
-#define NANOCBOR_TYPE_TSTR      (0x03)
-#define NANOCBOR_TYPE_ARR       (0x04)
-#define NANOCBOR_TYPE_MAP       (0x05)
-#define NANOCBOR_TYPE_TAG       (0x06)
-#define NANOCBOR_TYPE_FLOAT     (0x07)
+#define NANOCBOR_TYPE_UINT      (0x00U)
+#define NANOCBOR_TYPE_NINT      (0x01U)
+#define NANOCBOR_TYPE_BSTR      (0x02U)
+#define NANOCBOR_TYPE_TSTR      (0x03U)
+#define NANOCBOR_TYPE_ARR       (0x04U)
+#define NANOCBOR_TYPE_MAP       (0x05U)
+#define NANOCBOR_TYPE_TAG       (0x06U)
+#define NANOCBOR_TYPE_FLOAT     (0x07U)
 
 /**
  * @name CBOR major types
@@ -78,17 +78,17 @@ extern "C" {
 #define NANOCBOR_SIMPLE_FALSE       20U
 #define NANOCBOR_SIMPLE_TRUE        21U
 #define NANOCBOR_SIMPLE_NULL        22U
-#define NANOCBOR_SIMPLE_UNDEF       23
+#define NANOCBOR_SIMPLE_UNDEF       23U
 /** @} */
 
 /**
  * @name CBOR integer special size values
  * @{
  */
-#define NANOCBOR_INT_VAL_UINT8          24
-#define NANOCBOR_INT_VAL_UINT16         25
-#define NANOCBOR_INT_VAL_UINT32         26
-#define NANOCBOR_INT_VAL_UINT64         27
+#define NANOCBOR_INT_VAL_UINT8          24U
+#define NANOCBOR_INT_VAL_UINT16         25U
+#define NANOCBOR_INT_VAL_UINT32         26U
+#define NANOCBOR_INT_VAL_UINT64         27U
 /** @} */
 
 /**
@@ -117,11 +117,11 @@ typedef struct nanocbor_value {
     uint8_t flags;
 } nanocbor_value_t;
 
-#define NANOCBOR_DECODER_FLAG_CONTAINER  0x01
-#define NANOCBOR_DECODER_FLAG_INDEFINITE 0x02
+#define NANOCBOR_DECODER_FLAG_CONTAINER  (0x01U)
+#define NANOCBOR_DECODER_FLAG_INDEFINITE (0x02U)
 
 void nanocbor_decoder_init(nanocbor_value_t *value,
-                          uint8_t *buf, size_t len);
+                           const uint8_t *buf, size_t len);
 uint8_t nanocbor_get_type(nanocbor_value_t *value);
 bool nanocbor_at_end(nanocbor_value_t *it);
 int nanocbor_get_uint32(nanocbor_value_t *cvalue, uint32_t *value);

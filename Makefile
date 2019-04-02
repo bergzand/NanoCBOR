@@ -1,9 +1,10 @@
-NANOCBOR_DIR ?= .
+NANOCBOR_DIR ?= $(CURDIR)
 
 CC ?= gcc
 RM ?= rm -rf
 TIDY ?= clang-tidy
-
+ 
+INC_GLOBAL ?= /usr/include
 INC_DIR = $(NANOCBOR_DIR)/include
 SRC_DIR = $(NANOCBOR_DIR)/src
 
@@ -14,12 +15,10 @@ OBJ_DIR ?= $(BIN_DIR)/objs
 
 TIDYFLAGS=-checks=* -warnings-as-errors=*
 
-CFLAGS_COVERAGE += -coverage
-CFLAGS_DEBUG += $(CFLAGS_COVERAGE) -g3
+CFLAGS_WARN += -Wall -Wextra -pedantic -Werror -Wshadow
+CFLAGS += -fPIC $(CFLAGS_WARN) -I$(INC_DIR) -I$(INC_GLOBAL) 
 
-CFLAGS += -fPIC -Wall -Wextra -pedantic -Werror -I$(INC_DIR) -flto
-
-SRCS += $(wildcard $(SRC_DIR)/*.c)
+SRCS ?= $(wildcard $(SRC_DIR)/*.c)
 OBJS ?= $(patsubst $(SRC_DIR)/%.c,$(OBJ_DIR)/%.o,$(SRCS))
 
 lib: $(BIN_DIR)/nanocbor.so
@@ -35,7 +34,7 @@ $(BIN_DIR)/nanocbor.so: $(OBJS)
 	$(CC) $(CFLAGS) $(OBJS) -o $@ -shared
 
 clang-tidy:
-	$(TIDY) $(TIDYFLAGS) $(TIDYSRCS) -- $(CFLAGS)
+	$(TIDY) $(TIDYFLAGS) $(SRCS) -- $(CFLAGS)
 
 clean:
 	$(RM) $(BIN_DIR)
