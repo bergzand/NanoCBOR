@@ -1,7 +1,7 @@
 NANOCBOR_DIR ?= $(CURDIR)
 
 CC ?= gcc
-RM ?= rm -rf
+RM = rm -rf
 TIDY ?= clang-tidy
  
 INC_GLOBAL ?= /usr/include
