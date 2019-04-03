@@ -3,6 +3,7 @@ NANOCBOR_DIR ?= $(CURDIR)
 CC ?= gcc
 RM = rm -rf
 TIDY ?= clang-tidy
+CFLAGS ?= 
  
 INC_GLOBAL ?= /usr/include
 INC_DIR = $(NANOCBOR_DIR)/include
@@ -30,7 +31,9 @@ prepare:
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c prepare
 	$(CC) $(CFLAGS) -c -o $@ $<
 
-$(BIN_DIR)/nanocbor.so: $(OBJS)
+objs: $(OBJS)
+
+$(BIN_DIR)/nanocbor.so: objs
 	$(CC) $(CFLAGS) $(OBJS) -o $@ -shared
 
 clang-tidy:
