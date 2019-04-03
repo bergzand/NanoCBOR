@@ -1,0 +1,18 @@
+container:
+  image: silkeh/clang:latest
+  cpu: 1
+  memory: 512Mb
+
+lint_task:
+  container:
+    image: silkeh/clang:latest
+  test_script: make clang-tidy
+
+gcc_task:
+  container:
+    matrix:
+      image: gcc:6
+      image: gcc:7
+      image: gcc:8
+      image: gcc:latest
+  test_script: make bin/nanocbor.so CC=gcc
