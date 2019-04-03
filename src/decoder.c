@@ -50,7 +50,7 @@ bool nanocbor_at_end(nanocbor_value_t *it)
 
     if (it->flags & NANOCBOR_DECODER_FLAG_CONTAINER) {
         if (it->flags & NANOCBOR_DECODER_FLAG_INDEFINITE &&
-            *it->start == 0xFFU) {
+            *it->start == (NANOCBOR_TYPE_FLOAT | NANOCBOR_SIZE_INDEFINITE)) {
             it->start++;
             overflow = true;
         }
@@ -86,7 +86,7 @@ static int _get_uint64(nanocbor_value_t *cvalue, uint64_t *value, uint8_t max, u
     /* NOLINTNEXTLINE: user supplied function */
     tmp = NANOCBOR_BE64TOH_FUNC(tmp);
     memcpy(value, &tmp, bytes);
-    return 1U + bytes;
+    return (int)(1 + bytes);
 }
 
 static int _get_nint32(nanocbor_value_t *cvalue, int32_t *value, uint8_t type)

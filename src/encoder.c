@@ -73,20 +73,20 @@ static int _fmt_uint64(nanocbor_encoder_t *enc, uint64_t num, uint8_t type)
         if (num > UINT32_MAX) {
             /* Requires long size */
             type |= NANOCBOR_SIZE_LONG;
-            extrabytes = 8;
+            extrabytes = sizeof(uint64_t);
         }
         else if (num > UINT16_MAX) {
             /* At least word size */
             type |= NANOCBOR_SIZE_WORD;
-            extrabytes = 4;
+            extrabytes = sizeof(uint32_t);
         }
         else if (num > UINT8_MAX) {
             type |= NANOCBOR_SIZE_SHORT;
-            extrabytes = 2;
+            extrabytes = sizeof(uint16_t);
         }
         else {
             type |= NANOCBOR_SIZE_BYTE;
-            extrabytes = 1;
+            extrabytes = sizeof(uint8_t);
         }
     }
     int res = _fits(enc, extrabytes + 1);
@@ -216,13 +216,13 @@ int nanocbor_fmt_float(nanocbor_encoder_t *enc, float num)
     }
 #endif
     /* normal float */
-    int res = _fits(enc, 5);
+    int res = _fits(enc, 1 + sizeof(float));
     if (res == 0) {
         *enc->cur++ = NANOCBOR_MASK_FLOAT | NANOCBOR_SIZE_WORD;
         /* NOLINTNEXTLINE: user supplied function */
         uint32_t bnum = NANOCBOR_HTOBE32_FUNC(*unum);
         memcpy(enc->cur, &bnum, sizeof(bnum));
-        enc->cur += 4;
+        enc->cur += sizeof(float);
     }
     return res;
 }
