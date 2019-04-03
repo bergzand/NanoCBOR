@@ -1,7 +1,7 @@
 container:
   image: silkeh/clang:latest
   cpu: 1
-  memory: 512Mb
+  memory: 128Mb
 
 lint_task:
   container:
@@ -11,8 +11,16 @@ lint_task:
 gcc_task:
   container:
     matrix:
-      image: gcc:6
       image: gcc:7
       image: gcc:8
-      image: gcc:latest
   test_script: make bin/nanocbor.so CC=gcc
+ 
+llvm_task:
+  container:
+    matrix:
+      image: silkeh/clang:6
+      image: silkeh/clang:7
+  install_script:
+    - apt update
+    - apt install -y libgcc-6-dev
+  test_script: make bin/nanocbor.so CC=clang
