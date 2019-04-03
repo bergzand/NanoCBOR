@@ -1,5 +1,4 @@
 container:
-  image: silkeh/clang:latest
   cpu: 1
   memory: 128Mb
 
