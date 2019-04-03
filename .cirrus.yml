@@ -8,19 +8,25 @@ lint_task:
     image: silkeh/clang:latest
   test_script: make clang-tidy
 
-gcc_task:
-  container:
-    matrix:
-      image: gcc:7
-      image: gcc:8
-  test_script: make bin/nanocbor.so CC=gcc
- 
-llvm_task:
-  container:
-    matrix:
-      image: silkeh/clang:6
-      image: silkeh/clang:7
-  install_script:
-    - apt update
-    - apt install -y libgcc-6-dev
-  test_script: make bin/nanocbor.so CC=clang
+build_task:
+  depends_on:
+    - lint
+  matrix:
+    - name: clang
+      env:
+        CC: clang
+      container:
+        matrix:
+          image: silkeh/clang:6
+          image: silkeh/clang:7
+      install_script:
+        - apt update
+        - apt install -y libgcc-6-dev
+    - name: gcc
+      env:
+        CC: gcc
+      container:
+        matrix:
+          image: gcc:6
+          image: gcc:7
+  test_script: make bin/nanocbor.so
