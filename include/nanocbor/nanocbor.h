@@ -119,7 +119,7 @@ typedef struct nanocbor_encoder {
 
 void nanocbor_decoder_init(nanocbor_value_t *value,
                            const uint8_t *buf, size_t len);
-uint8_t nanocbor_get_type(nanocbor_value_t *value);
+uint8_t nanocbor_get_type(const nanocbor_value_t *value);
 bool nanocbor_at_end(nanocbor_value_t *it);
 int nanocbor_get_uint32(nanocbor_value_t *cvalue, uint32_t *value);
 int nanocbor_get_int32(nanocbor_value_t *cvalue, int32_t *value);
