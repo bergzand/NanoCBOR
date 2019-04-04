@@ -29,3 +29,17 @@ build_task:
           image: gcc:6
           image: gcc:7
   test_script: make bin/nanocbor.so
+
+arm_task:
+  container:
+    image: hiberglobal/gcc-arm-none-eabi:8-2018-q4-major
+  env:
+    CFLAGS: -mno-thumb-interwork -mcpu=cortex-m0plus -mlittle-endian -mthumb -mfloat-abi=soft -march=armv6s-m -DNANOCBOR_BYTEORDER_HEADER=\"stddef.h\" -DNANOCBOR_BE64TOH_FUNC=__builtin_bswap64 -DNANOCBOR_HTOBE64_FUNC=__builtin_bswap64 -DNANOCBOR_HTOBE32_FUNC=__builtin_bswap32
+    CC: arm-none-eabi-gcc
+  install_script:
+    - apk add make
+  test_script: 
+    - make objs
+    - arm-none-eabi-size bin/objs/* > output.txt
+  size_artifacts:
+    path: output.txt
