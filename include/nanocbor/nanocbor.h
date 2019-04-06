@@ -133,10 +133,22 @@ int nanocbor_get_bool(nanocbor_value_t *cvalue, bool *value);
 int nanocbor_skip(nanocbor_value_t *it);
 int nanocbor_skip_simple(nanocbor_value_t *it);
 
+static inline uint32_t nanocbor_container_remaining(nanocbor_value_t *value)
+{
+    return value->remaining;
+}
+
+static inline bool nanocbor_container_indefinite(nanocbor_value_t *value)
+{
+    return value->flags &
+        (NANOCBOR_DECODER_FLAG_INDEFINITE | NANOCBOR_DECODER_FLAG_CONTAINER);
+}
+
 void nanocbor_encoder_init(nanocbor_encoder_t *enc,
                            uint8_t *buf, size_t len);
 size_t nanocbor_encoded_len(nanocbor_encoder_t *enc);
 int nanocbor_fmt_null(nanocbor_encoder_t *enc);
+
 
 /**
  * @brief Write a CBOR boolean value into a buffer
