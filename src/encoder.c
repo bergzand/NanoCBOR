@@ -133,7 +133,7 @@ int nanocbor_fmt_tstr(nanocbor_encoder_t *enc, size_t len)
     return _fmt_uint64(enc, (uint64_t)len, NANOCBOR_MASK_TSTR);
 }
 
-static int _put_bytes(nanocbor_encoder_t *enc, uint8_t *str, size_t len)
+static int _put_bytes(nanocbor_encoder_t *enc, const uint8_t *str, size_t len)
 {
     int res = _fits(enc, len);
 
@@ -144,15 +144,15 @@ static int _put_bytes(nanocbor_encoder_t *enc, uint8_t *str, size_t len)
     return res;
 }
 
-int nanocbor_put_tstr(nanocbor_encoder_t *enc, char *str)
+int nanocbor_put_tstr(nanocbor_encoder_t *enc, const char *str)
 {
     size_t len = strlen(str);
 
     nanocbor_fmt_tstr(enc, len);
-    return _put_bytes(enc, (uint8_t *)str, len);
+    return _put_bytes(enc, (const uint8_t *)str, len);
 }
 
-int nanocbor_put_bstr(nanocbor_encoder_t *enc, uint8_t *str, size_t len)
+int nanocbor_put_bstr(nanocbor_encoder_t *enc, const uint8_t *str, size_t len)
 {
     nanocbor_fmt_bstr(enc, len);
     return _put_bytes(enc, str, len);

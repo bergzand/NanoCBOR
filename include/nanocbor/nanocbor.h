@@ -173,8 +173,8 @@ int nanocbor_fmt_int(nanocbor_encoder_t *enc, int64_t num);
 
 int nanocbor_fmt_bstr(nanocbor_encoder_t *enc, size_t len);
 int nanocbor_fmt_tstr(nanocbor_encoder_t *enc, size_t len);
-int nanocbor_put_tstr(nanocbor_encoder_t *enc, char *str);
-int nanocbor_put_bstr(nanocbor_encoder_t *enc, uint8_t *str, size_t len);
+int nanocbor_put_tstr(nanocbor_encoder_t *enc, const char *str);
+int nanocbor_put_bstr(nanocbor_encoder_t *enc, const uint8_t *str, size_t len);
 
 /**
  * @brief Write an array indicator with @ref len items
