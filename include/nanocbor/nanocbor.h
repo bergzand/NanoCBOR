@@ -157,6 +157,7 @@ int nanocbor_fmt_bool(nanocbor_encoder_t *enc, bool content);
  * @return  number of bytes written
  */
 int nanocbor_fmt_uint(nanocbor_encoder_t *enc, uint64_t num);
+int nanocbor_fmt_tag(nanocbor_encoder_t *enc, uint64_t num);
 
 /**
  * @brief Write a signed integer of at most sizeof int32_t into the buffer

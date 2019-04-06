@@ -108,6 +108,11 @@ int nanocbor_fmt_uint(nanocbor_encoder_t *enc, uint64_t num)
     return _fmt_uint64(enc, num, NANOCBOR_MASK_UINT);
 }
 
+int nanocbor_fmt_tag(nanocbor_encoder_t *enc, uint64_t num)
+{
+    return _fmt_uint64(enc, num, NANOCBOR_MASK_TAG);
+}
+
 int nanocbor_fmt_int(nanocbor_encoder_t *enc, int64_t num)
 {
     if (num < 0) {
