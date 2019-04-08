@@ -9,6 +9,12 @@
 /**
  * @defgroup    nanocbor_config NanoCBOR configuration header
  * @brief       Provides compile-time configuration for nanocbor
+ *
+ * @{
+ *
+ * @file
+ *
+ * @author      Koen Zandberg <koen@bergzand.net>
  */
 
 #ifndef NANOCBOR_CONFIG_H
@@ -20,6 +26,9 @@
 extern "C" {
 #endif
 
+/**
+ * @brief Recursion limit when using @ref nanocbor_skip.
+ */
 #ifndef NANOCBOR_RECURSION_MAX
 #define NANOCBOR_RECURSION_MAX  10
 #endif
@@ -79,3 +88,4 @@ extern "C" {
 #endif
 
 #endif /* NANOCBOR_CONFIG_H */
+/** @} */

@@ -175,6 +175,9 @@ int main(void)
 {
     ssize_t len = read(STDIN_FILENO, buffer, sizeof(buffer));
     printf("Reading %ld bytes from stdin\n", (long signed)len);
+    if (len < 0) {
+        return -1;
+    }
 
     nanocbor_value_t it;
     nanocbor_decoder_init(&it, (uint8_t*)buffer, len);

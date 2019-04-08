@@ -239,10 +239,10 @@ int nanocbor_enter_map(nanocbor_value_t *it, nanocbor_value_t *map)
     return res;
 }
 
-void nanocbor_leave_container(nanocbor_value_t *it, nanocbor_value_t *array)
+void nanocbor_leave_container(nanocbor_value_t *it, nanocbor_value_t *container)
 {
     /* NOLINTNEXTLINE(clang-analyzer-core.uninitialized.Assign) */
-    it->start = array->start;
+    it->start = container->start;
     if (it->flags == NANOCBOR_DECODER_FLAG_CONTAINER) {
         it->remaining--;
     }
