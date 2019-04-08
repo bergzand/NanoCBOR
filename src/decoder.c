@@ -34,19 +34,27 @@ void nanocbor_decoder_init(nanocbor_value_t *value,
     value->flags = 0;
 }
 
+static inline bool _overflow(const nanocbor_value_t *it)
+{
+    return it->start >= it->end;
+}
+
 static inline uint8_t _get_type(const nanocbor_value_t *value)
 {
     return (*value->start & NANOCBOR_TYPE_MASK);
 }
 
-uint8_t nanocbor_get_type(const nanocbor_value_t *value)
+int nanocbor_get_type(const nanocbor_value_t *value)
 {
+    if (_overflow(value)) {
+        return NANOCBOR_ERR_OVERFLOW;
+    }
     return (_get_type(value) >> NANOCBOR_TYPE_OFFSET);
 }
 
 bool nanocbor_at_end(nanocbor_value_t *it)
 {
-    bool overflow = it->start >= it->end;
+    bool overflow = _overflow(it);
 
     if (it->flags & NANOCBOR_DECODER_FLAG_CONTAINER) {
         if (it->flags & NANOCBOR_DECODER_FLAG_INDEFINITE &&
@@ -59,14 +67,15 @@ bool nanocbor_at_end(nanocbor_value_t *it)
     return overflow;
 }
 
-static int _get_uint64(nanocbor_value_t *cvalue, uint8_t *value, uint8_t max, uint8_t type)
+static int _get_uint64(nanocbor_value_t *cvalue, uint8_t *value, uint8_t max, int type)
 {
-    uint8_t ctype = _get_type(cvalue);
-    unsigned bytelen = *cvalue->start & NANOCBOR_VALUE_MASK;
+    int ctype = nanocbor_get_type(cvalue);
 
     if (type != ctype) {
         return NANOCBOR_ERR_INVALID_TYPE;
     }
+
+    unsigned bytelen = *cvalue->start & NANOCBOR_VALUE_MASK;
 
     if (bytelen < NANOCBOR_SIZE_BYTE) {
         *value = bytelen;
@@ -119,7 +128,7 @@ static int _advance_if(nanocbor_value_t *cvalue, int res)
 int nanocbor_get_uint32(nanocbor_value_t *cvalue, uint32_t *value)
 {
     int res = _get_uint64(cvalue, (uint8_t *)value, NANOCBOR_SIZE_WORD,
-                          NANOCBOR_MASK_UINT);
+                          NANOCBOR_TYPE_UINT);
 
     return _advance_if(cvalue, res);
 }
@@ -129,11 +138,11 @@ int nanocbor_get_int32(nanocbor_value_t *cvalue, int32_t *value)
 {
     uint32_t intermediate = 0;
     int res = _get_uint64(cvalue, (uint8_t *)&intermediate,
-                          NANOCBOR_SIZE_WORD, NANOCBOR_MASK_UINT);
+                          NANOCBOR_SIZE_WORD, NANOCBOR_TYPE_UINT);
 
     *value = intermediate;
     if (res == NANOCBOR_ERR_INVALID_TYPE) {
-        res = _get_nint32(cvalue, value, NANOCBOR_MASK_NINT);
+        res = _get_nint32(cvalue, value, NANOCBOR_TYPE_NINT);
     }
     return _advance_if(cvalue, res);
 }
@@ -141,7 +150,7 @@ int nanocbor_get_int32(nanocbor_value_t *cvalue, int32_t *value)
 int nanocbor_get_tag(nanocbor_value_t *cvalue, uint32_t *tag)
 {
     int res = _get_uint64(cvalue, (uint8_t *)tag, NANOCBOR_SIZE_WORD,
-                          NANOCBOR_MASK_TAG);
+                          NANOCBOR_TYPE_TAG);
 
     return _advance_if(cvalue, res);
 }
@@ -163,12 +172,12 @@ static int _get_str(nanocbor_value_t *cvalue, const uint8_t **buf, size_t *len, 
 
 int nanocbor_get_bstr(nanocbor_value_t *cvalue, const uint8_t **buf, size_t *len)
 {
-    return _get_str(cvalue, buf, len, NANOCBOR_MASK_BSTR);
+    return _get_str(cvalue, buf, len, NANOCBOR_TYPE_BSTR);
 }
 
 int nanocbor_get_tstr(nanocbor_value_t *cvalue, const uint8_t **buf, size_t *len)
 {
-    return _get_str(cvalue, buf, len, NANOCBOR_MASK_TSTR);
+    return _get_str(cvalue, buf, len, NANOCBOR_TYPE_TSTR);
 }
 
 int nanocbor_get_null(nanocbor_value_t *cvalue)
@@ -242,11 +251,10 @@ void nanocbor_leave_container(nanocbor_value_t *it, nanocbor_value_t *array)
 static int _skip_simple(nanocbor_value_t *it)
 {
     uint64_t tmp;
-    int res = _advance_if(it, _get_uint64(it, (uint8_t*)&tmp,
-                                          NANOCBOR_SIZE_LONG, _get_type(it)));
-
+    int res = _get_uint64(it, (uint8_t*)&tmp, NANOCBOR_SIZE_LONG,
+                          nanocbor_get_type(it));
     (void)tmp;
-    return res;
+    return _advance_if(it, res);
 }
 
 int nanocbor_skip_simple(nanocbor_value_t *it)
@@ -259,18 +267,18 @@ int _skip_limited(nanocbor_value_t *it, uint8_t limit)
     if (limit == 0) {
         return NANOCBOR_ERR_RECURSION;
     }
-    uint8_t type = _get_type(it);
-    int res = 0;
+    int type = nanocbor_get_type(it);
+    int res = type;
 
-    if (type == NANOCBOR_MASK_BSTR || type == NANOCBOR_MASK_TSTR) {
+    if (type == NANOCBOR_TYPE_BSTR || type == NANOCBOR_TYPE_TSTR) {
         const uint8_t *tmp;
         size_t len;
         res = _get_str(it, &tmp, &len, type);
     }
     /* map or array */
-    else if (type == NANOCBOR_MASK_ARR || type == NANOCBOR_MASK_MAP) {
+    else if (type == NANOCBOR_TYPE_ARR || type == NANOCBOR_TYPE_MAP) {
         nanocbor_value_t recurse;
-        res = (type == NANOCBOR_MASK_MAP
+        res = (type == NANOCBOR_TYPE_MAP
                ? nanocbor_enter_map(it, &recurse)
                : nanocbor_enter_array(it, &recurse));
         if (!(res < 0)) {
@@ -283,7 +291,7 @@ int _skip_limited(nanocbor_value_t *it, uint8_t limit)
         }
         nanocbor_leave_container(it, &recurse);
     }
-    else {
+    else if (type >= 0) {
         res = _skip_simple(it);
     }
     return res;
