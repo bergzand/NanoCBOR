@@ -225,12 +225,12 @@ int _enter_container(nanocbor_value_t *it, nanocbor_value_t *container, uint8_t 
 
 int nanocbor_enter_array(nanocbor_value_t *it, nanocbor_value_t *array)
 {
-    return _enter_container(it, array, NANOCBOR_MASK_ARR);
+    return _enter_container(it, array, NANOCBOR_TYPE_ARR);
 }
 
 int nanocbor_enter_map(nanocbor_value_t *it, nanocbor_value_t *map)
 {
-    int res = _enter_container(it, map, NANOCBOR_MASK_MAP);
+    int res = _enter_container(it, map, NANOCBOR_TYPE_MAP);
 
     if (map->remaining > UINT32_MAX / 2) {
         return NANOCBOR_ERR_OVERFLOW;
