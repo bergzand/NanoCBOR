@@ -131,7 +131,7 @@ typedef enum {
  * @brief decoder context
  */
 typedef struct nanocbor_value {
-    const uint8_t *start; /**< Current position in the buffer             */
+    const uint8_t *cur;   /**< Current position in the buffer             */
     const uint8_t *end;   /**< End of the buffer                          */
     uint32_t remaining;   /**< Number of items remaining in the container */
     uint8_t flags;        /**< Flags for decoding hints                   */
@@ -199,7 +199,7 @@ int nanocbor_get_type(const nanocbor_value_t *value);
  * @return              true if it is exhausted
  * @return              false if there are more items
  */
-bool nanocbor_at_end(nanocbor_value_t *it);
+bool nanocbor_at_end(const nanocbor_value_t *it);
 
 /**
  * @brief Retrieve a positive integer as uint32_t from the stream
@@ -353,7 +353,7 @@ int nanocbor_skip_simple(nanocbor_value_t *it);
  *
  * @return              number of items remaining
  */
-static inline uint32_t nanocbor_container_remaining(nanocbor_value_t *value)
+static inline uint32_t nanocbor_container_remaining(const nanocbor_value_t *value)
 {
     return value->remaining;
 }
@@ -367,10 +367,15 @@ static inline uint32_t nanocbor_container_remaining(nanocbor_value_t *value)
  * @return                  False when not indefinite-length or not in a
  *                          container
  */
-static inline bool nanocbor_container_indefinite(nanocbor_value_t *container)
+static inline bool nanocbor_container_indefinite(const nanocbor_value_t *container)
 {
-    return container->flags &
-        (NANOCBOR_DECODER_FLAG_INDEFINITE | NANOCBOR_DECODER_FLAG_CONTAINER);
+    return (container->flags ==
+        (NANOCBOR_DECODER_FLAG_INDEFINITE | NANOCBOR_DECODER_FLAG_CONTAINER));
+}
+
+static inline bool nanocbor_in_container(const nanocbor_value_t *container)
+{
+    return container->flags & (NANOCBOR_DECODER_FLAG_CONTAINER);
 }
 
 /** @} */
