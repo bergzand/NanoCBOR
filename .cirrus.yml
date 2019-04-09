@@ -10,6 +10,9 @@ lint_task:
 build_task:
   depends_on:
     - lint
+  install_script:
+    - apt update
+    - apt install -y libcunit1-dev
   matrix:
     - name: clang
       env:
@@ -18,8 +21,7 @@ build_task:
         matrix:
           image: silkeh/clang:6
           image: silkeh/clang:7
-      install_script:
-        - apt update
+      install_libgcc_script:
         - apt install -y libgcc-6-dev
     - name: gcc
       env:
@@ -28,7 +30,10 @@ build_task:
         matrix:
           image: gcc:6
           image: gcc:7
-  test_script: make bin/nanocbor.so
+  test_script: 
+    - make -C tests/automated clean test
+    - make bin/nanocbor.so
+
 
 arm_task:
   container:
