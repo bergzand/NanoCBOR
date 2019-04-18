@@ -356,6 +356,22 @@ int nanocbor_skip(nanocbor_value_t *it);
 int nanocbor_skip_simple(nanocbor_value_t *it);
 
 /**
+ * @brief Retrieve part of the CBOR stream for separate parsing
+ *
+ * This function retrieves the pointer and length of a single CBOR item. This
+ * item can be stored for later processing.
+ *
+ * @param[in]   it      CBOR value to retrieve
+ * @param[out]  start   start of the CBOR item
+ * @param[out]  len     length of the CBOR item
+ *
+ * @return              NANOCBOR_OK on success
+ * @return              negative on error
+ */
+int nanocbor_get_subcbor(nanocbor_value_t *it, const uint8_t **start,
+                         size_t *len);
+
+/**
  * @brief Retrieve the number of remaining values is a CBOR container
  *
  * The returned value is undefined when not inside a container or when the
