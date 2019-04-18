@@ -278,6 +278,15 @@ static int _skip_simple(nanocbor_value_t *it)
     return _advance_if(it, res);
 }
 
+int nanocbor_get_subcbor(nanocbor_value_t *it, const uint8_t **start,
+                         size_t *len)
+{
+    *start = it->cur;
+    int res = nanocbor_skip(it);
+    *len = it->cur - *start;
+    return res;
+}
+
 int nanocbor_skip_simple(nanocbor_value_t *it)
 {
     return _skip_simple(it);
