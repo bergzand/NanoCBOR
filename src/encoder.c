@@ -189,37 +189,119 @@ int nanocbor_fmt_null(nanocbor_encoder_t *enc)
     return _fmt_single(enc, NANOCBOR_MASK_FLOAT | NANOCBOR_SIMPLE_NULL);
 }
 
-#define FLOAT_EXP_OFFSET   (127U)
-#define HALF_EXP_OFFSET     (15U)
+/* Double bit mask related defines */
+#define DOUBLE_EXP_OFFSET                      (1023U)
+#define DOUBLE_SIZE                              (64U)
+#define DOUBLE_EXP_POS                           (52U)
+#define DOUBLE_SIGN_POS                          (63U)
+#define DOUBLE_EXP_MASK                       (0x7FFU)
+#define DOUBLE_SIGN_MASK      (1LLU << DOUBLE_SIGN_POS)
+#define DOUBLE_EXP_IS_NAN                     (0x7FFU)
+#define DOUBLE_IS_ZERO           (~(DOUBLE_SIGN_MASK))
+#define DOUBLE_FLOAT_LOSS                (0x1FFFFFFFU)
 
-int nanocbor_fmt_float(nanocbor_encoder_t *enc, float num)
+/* float bit mask related defines */
+#define FLOAT_EXP_OFFSET                     (127U)
+#define FLOAT_SIZE                            (32U)
+#define FLOAT_EXP_POS                         (23U)
+#define FLOAT_EXP_MASK                      (0xFFU)
+#define FLOAT_SIGN_POS                        (31U)
+#define FLOAT_FRAC_MASK                 (0x7FFFFFU)
+#define FLOAT_SIGN_MASK      (1U << FLOAT_SIGN_POS)
+#define FLOAT_EXP_IS_NAN                    (0xFFU)
+#define FLOAT_IS_ZERO          (~(FLOAT_SIGN_MASK))
+/* Part where a float to halffloat leads to precision loss */
+#define FLOAT_HALF_LOSS                   (0x1FFFU)
+
+/* halffloat bit mask related defines */
+#define HALF_EXP_OFFSET                       (15U)
+#define HALF_SIZE                             (16U)
+#define HALF_EXP_POS                          (10U)
+#define HALF_EXP_MASK                       (0x1FU)
+#define HALF_SIGN_POS                         (15U)
+#define HALF_FRAC_MASK                     (0x3FFU)
+#define HALF_SIGN_MASK        (1U << HALF_SIGN_POS)
+#define HALF_MASK_HALF                      (0xFFU)
+
+/* Check special cases for single precision floats */
+static bool _single_is_inf_nan(uint8_t exp)
+{
+    return exp == FLOAT_EXP_IS_NAN;
+}
+
+static bool _single_is_zero(uint32_t num)
+{
+    return (num & FLOAT_IS_ZERO) == 0;
+}
+
+static bool _single_in_range(uint8_t exp, uint32_t num)
 {
     /* Check if lower 13 bits of fraction are zero, if so we might be able to
      * convert without precision loss */
+    if (exp <= (HALF_EXP_OFFSET + FLOAT_EXP_OFFSET) &&
+        exp >= ((-HALF_EXP_OFFSET + 1) + FLOAT_EXP_OFFSET) &&
+        ((num & FLOAT_HALF_LOSS) == 0)) {
+        return true;
+    }
+    return false;
+}
+
+static int _fmt_halffloat(nanocbor_encoder_t *enc, uint16_t half)
+{
+    int res = _fits(enc, sizeof(uint16_t) + 1);
+    if (res == 0) {
+        *enc->cur++ = NANOCBOR_MASK_FLOAT | NANOCBOR_SIZE_SHORT;
+        *enc->cur++ = (half >> HALF_SIZE/2);
+        *enc->cur++ =  half & HALF_MASK_HALF;
+        res = sizeof(uint16_t) + 1;
+    }
+    return res;
+}
+
+/* Check special cases for single precision floats */
+static bool _double_is_inf_nan(uint16_t exp)
+{
+    return (exp == DOUBLE_EXP_IS_NAN);
+}
+
+static bool _double_is_zero(uint64_t num)
+{
+    return (num & DOUBLE_IS_ZERO) == 0;
+}
+
+static bool _double_in_range(uint16_t exp, uint64_t num)
+{
+    /* Check if lower 13 bits of fraction are zero, if so we might be able to
+     * convert without precision loss */
+    if (exp <= (DOUBLE_EXP_OFFSET + FLOAT_EXP_OFFSET) &&
+        exp >= (DOUBLE_EXP_OFFSET - FLOAT_EXP_OFFSET + 1) &&
+        ((num & DOUBLE_FLOAT_LOSS) == 0)) { /* First 29 bits must be zero */
+        return true;
+    }
+    return false;
+}
+
+int nanocbor_fmt_float(nanocbor_encoder_t *enc, float num)
+{
+    /* Allow bitwise access to float */
     uint32_t *unum = (uint32_t *)&num;
 
-#if 0
-    uint8_t exp = (*unum >> 23) & 0xff;
-    /* Copy sign bit */
-    uint16_t half = ((*unum >> 16) & 0x8000);
-    if ((*unum & 0x1FFF) == 0 &&  ((
-                                       /* Exponent within range for half float */
-                                       exp <= 15 + FLOAT_EXP_OFFSET &&
-                                       exp >= -14 + FLOAT_EXP_OFFSET) ||
-                                   /* Inf or NaN */
-                                   exp == 255 || exp == 0)) {
+    /* Retrieve exponent */
+    uint8_t exp = (*unum >> FLOAT_EXP_POS) & FLOAT_EXP_MASK;
+    if (_single_is_inf_nan(exp) ||
+            _single_is_zero(*unum) ||
+            _single_in_range(exp, *unum)) {
+        /* Copy sign bit */
+        uint16_t half = ((*unum >> (FLOAT_SIZE - HALF_SIZE)) & HALF_SIGN_MASK);
         /* Shift exponent */
-        if (exp != 255 && exp != 0) {
+        if (exp != FLOAT_EXP_IS_NAN && exp != 0) {
             exp = exp + HALF_EXP_OFFSET - FLOAT_EXP_OFFSET;
         }
-        /* Add exp */
-        half |= ((exp & 0x1F) << 10) | ((*unum >> 13) & 0x03FF);
-        *buf++ = NANOCBOR_MASK_FLOAT | NANOCBOR_SIZE_SHORT;
-        *buf++ = ((half & 0xff00) >> 8) & 0xff;
-        *buf =  half & 0x00ff;
-        return 0;
+        /* Add exponent */
+        half |= ((exp & HALF_EXP_MASK) << HALF_EXP_POS) |
+                ((*unum >> (FLOAT_EXP_POS - HALF_EXP_POS)) & HALF_FRAC_MASK);
+        return _fmt_halffloat(enc, half);
     }
-#endif
     /* normal float */
     int res = _fits(enc, 1 + sizeof(float));
     if (res == 0) {
@@ -228,6 +310,37 @@ int nanocbor_fmt_float(nanocbor_encoder_t *enc, float num)
         uint32_t bnum = NANOCBOR_HTOBE32_FUNC(*unum);
         memcpy(enc->cur, &bnum, sizeof(bnum));
         enc->cur += sizeof(float);
+        res = sizeof(float) + 1;
+    }
+    return res;
+}
+
+int nanocbor_fmt_double(nanocbor_encoder_t *enc, double num)
+{
+    uint64_t *unum = (uint64_t *)&num;
+    uint16_t exp = (*unum >> DOUBLE_EXP_POS) & DOUBLE_EXP_MASK;
+    if (_double_is_inf_nan(exp) ||
+            _double_is_zero(*unum) ||
+            _double_in_range(exp, *unum)) {
+        /* copy sign bit over */
+        uint32_t single = (*unum >> (DOUBLE_SIZE - FLOAT_SIZE)) & (FLOAT_SIGN_MASK);
+        /* Shift exponent */
+        if (exp != DOUBLE_EXP_IS_NAN && exp != 0) {
+            exp = exp + FLOAT_EXP_OFFSET - DOUBLE_EXP_OFFSET;
+        }
+        single |= ((exp & FLOAT_EXP_MASK) << FLOAT_EXP_POS) |
+                  ((*unum >> (DOUBLE_EXP_POS - FLOAT_EXP_POS)) & FLOAT_FRAC_MASK);
+        float *fsingle = (float*)&single;
+        return nanocbor_fmt_float(enc, *fsingle);
+    }
+    int res = _fits(enc, 1 + sizeof(double));
+    if (res == 0) {
+        *enc->cur++ = NANOCBOR_MASK_FLOAT | NANOCBOR_SIZE_LONG;
+        /* NOLINTNEXTLINE: user supplied function */
+        uint64_t bnum = NANOCBOR_HTOBE64_FUNC(*unum);
+        memcpy(enc->cur, &bnum, sizeof(bnum));
+        enc->cur += sizeof(double);
+        res = sizeof(double) + 1;
     }
     return res;
 }

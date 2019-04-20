@@ -607,6 +607,16 @@ int nanocbor_fmt_null(nanocbor_encoder_t *enc);
  */
 int nanocbor_fmt_float(nanocbor_encoder_t *enc, float num);
 
+/**
+ * @brief Write a double floating point value into the encoder buffer
+ *
+ * @param[in]   enc     Encoder context
+ * @param[in]   num     Floating point to encode
+ *
+ * @return              Number of bytes written
+ */
+int nanocbor_fmt_double(nanocbor_encoder_t *enc, double num);
+
 /** @} */
 
 #ifdef __cplusplus
