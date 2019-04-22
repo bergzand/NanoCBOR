@@ -2,7 +2,7 @@ NANOCBOR_DIR = ../..
 
 include ../../Makefile
 
-SRCS += main.c  test_decoder.c
+SRCS += main.c  test_decoder.c test_encoder.c
 LDFLAGS += -Wl,$(shell pkg-config --libs cunit || echo -lcunit)
 CFLAGS += $(shell pkg-config --cflags cunit)
 
