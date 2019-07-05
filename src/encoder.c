@@ -190,38 +190,38 @@ int nanocbor_fmt_null(nanocbor_encoder_t *enc)
 }
 
 /* Double bit mask related defines */
-#define DOUBLE_EXP_OFFSET                      (1023U)
-#define DOUBLE_SIZE                              (64U)
-#define DOUBLE_EXP_POS                           (52U)
-#define DOUBLE_SIGN_POS                          (63U)
-#define DOUBLE_EXP_MASK                       (0x7FFU)
-#define DOUBLE_SIGN_MASK      (1LLU << DOUBLE_SIGN_POS)
-#define DOUBLE_EXP_IS_NAN                     (0x7FFU)
-#define DOUBLE_IS_ZERO           (~(DOUBLE_SIGN_MASK))
-#define DOUBLE_FLOAT_LOSS                (0x1FFFFFFFU)
+#define DOUBLE_EXP_OFFSET                                 (1023U)
+#define DOUBLE_SIZE                                         (64U)
+#define DOUBLE_EXP_POS                                      (52U)
+#define DOUBLE_SIGN_POS                                     (63U)
+#define DOUBLE_EXP_MASK                        ((uint64_t)0x7FFU)
+#define DOUBLE_SIGN_MASK        ((uint64_t)1U << DOUBLE_SIGN_POS)
+#define DOUBLE_EXP_IS_NAN                                (0x7FFU)
+#define DOUBLE_IS_ZERO                      (~(DOUBLE_SIGN_MASK))
+#define DOUBLE_FLOAT_LOSS                           (0x1FFFFFFFU)
 
 /* float bit mask related defines */
-#define FLOAT_EXP_OFFSET                     (127U)
-#define FLOAT_SIZE                            (32U)
-#define FLOAT_EXP_POS                         (23U)
-#define FLOAT_EXP_MASK                      (0xFFU)
-#define FLOAT_SIGN_POS                        (31U)
-#define FLOAT_FRAC_MASK                 (0x7FFFFFU)
-#define FLOAT_SIGN_MASK      (1U << FLOAT_SIGN_POS)
-#define FLOAT_EXP_IS_NAN                    (0xFFU)
-#define FLOAT_IS_ZERO          (~(FLOAT_SIGN_MASK))
+#define FLOAT_EXP_OFFSET                                   (127U)
+#define FLOAT_SIZE                                          (32U)
+#define FLOAT_EXP_POS                                       (23U)
+#define FLOAT_EXP_MASK                          ((uint32_t)0xFFU)
+#define FLOAT_SIGN_POS                                      (31U)
+#define FLOAT_FRAC_MASK                               (0x7FFFFFU)
+#define FLOAT_SIGN_MASK          ((uint32_t)1U << FLOAT_SIGN_POS)
+#define FLOAT_EXP_IS_NAN                                  (0xFFU)
+#define FLOAT_IS_ZERO                        (~(FLOAT_SIGN_MASK))
 /* Part where a float to halffloat leads to precision loss */
-#define FLOAT_HALF_LOSS                   (0x1FFFU)
+#define FLOAT_HALF_LOSS                                 (0x1FFFU)
 
 /* halffloat bit mask related defines */
-#define HALF_EXP_OFFSET                       (15U)
-#define HALF_SIZE                             (16U)
-#define HALF_EXP_POS                          (10U)
-#define HALF_EXP_MASK                       (0x1FU)
-#define HALF_SIGN_POS                         (15U)
-#define HALF_FRAC_MASK                     (0x3FFU)
-#define HALF_SIGN_MASK        (1U << HALF_SIGN_POS)
-#define HALF_MASK_HALF                      (0xFFU)
+#define HALF_EXP_OFFSET                                     (15U)
+#define HALF_SIZE                                           (16U)
+#define HALF_EXP_POS                                        (10U)
+#define HALF_EXP_MASK                                     (0x1FU)
+#define HALF_SIGN_POS                                       (15U)
+#define HALF_FRAC_MASK                                   (0x3FFU)
+#define HALF_SIGN_MASK          ((uint16_t)(1U << HALF_SIGN_POS))
+#define HALF_MASK_HALF                                    (0xFFU)
 
 /* Check special cases for single precision floats */
 static bool _single_is_inf_nan(uint8_t exp)
@@ -295,7 +295,7 @@ int nanocbor_fmt_float(nanocbor_encoder_t *enc, float num)
         uint16_t half = ((*unum >> (FLOAT_SIZE - HALF_SIZE)) & HALF_SIGN_MASK);
         /* Shift exponent */
         if (exp != FLOAT_EXP_IS_NAN && exp != 0) {
-            exp = exp + HALF_EXP_OFFSET - FLOAT_EXP_OFFSET;
+            exp = exp + (HALF_EXP_OFFSET - FLOAT_EXP_OFFSET);
         }
         /* Add exponent */
         half |= ((exp & HALF_EXP_MASK) << HALF_EXP_POS) |
