@@ -19,17 +19,17 @@ build_task:
         CC: clang
       container:
         matrix:
-          image: silkeh/clang:6
           image: silkeh/clang:7
+          image: silkeh/clang:8
       install_libgcc_script:
-        - apt install -y libgcc-6-dev
+        - apt install -y libgcc-7-dev
     - name: gcc
       env:
         CC: gcc
       container:
         matrix:
-          image: gcc:6
-          image: gcc:7
+          image: gcc:8
+          image: gcc:9
   test_script: 
     - make -C tests/automated clean test
     - make bin/nanocbor.so
