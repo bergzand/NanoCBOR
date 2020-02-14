@@ -14,10 +14,12 @@ TEST_DIR=tests
 BIN_DIR ?= bin
 OBJ_DIR ?= $(BIN_DIR)/objs
 
+# Only check at issues present for c99 compatible code
+CFLAGS_TIDY ?= -std=c99
 TIDYFLAGS=-checks=* -warnings-as-errors=*
 
 CFLAGS_WARN += -Wall -Wextra -pedantic -Werror -Wshadow
-CFLAGS += -fPIC $(CFLAGS_WARN) -I$(INC_DIR) -I$(INC_GLOBAL) -Os
+CFLAGS += -fPIC $(CFLAGS_WARN) -I$(INC_DIR) -I$(INC_GLOBAL) -Os 
 
 SRCS ?= $(wildcard $(SRC_DIR)/*.c)
 OBJS ?= $(patsubst $(SRC_DIR)/%.c,$(OBJ_DIR)/%.o,$(SRCS))
@@ -37,7 +39,7 @@ $(BIN_DIR)/nanocbor.so: objs
 	$(CC) $(CFLAGS) $(OBJS) -o $@ -shared
 
 clang-tidy:
-	$(TIDY) $(TIDYFLAGS) $(SRCS) -- $(CFLAGS)
+	$(TIDY) $(TIDYFLAGS) $(SRCS) -- $(CFLAGS) $(CFLAGS_TIDY)
 
 clean:
 	$(RM) $(BIN_DIR)
