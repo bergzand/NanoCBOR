@@ -19,6 +19,7 @@
 
 #include "nanocbor/config.h"
 #include "nanocbor/nanocbor.h"
+#include "nanocbor/ieee754.h"
 
 #include NANOCBOR_BYTEORDER_HEADER
 
@@ -225,6 +226,83 @@ int nanocbor_get_int16(nanocbor_value_t *cvalue, int16_t *value)
 int nanocbor_get_int32(nanocbor_value_t *cvalue, int32_t *value)
 {
     return _get_and_advance_int32(cvalue, value, NANOCBOR_SIZE_WORD, INT32_MAX);
+}
+
+static inline float uint32_to_float(uint32_t x)
+{
+    float f;
+    memcpy(&f, &x, sizeof(x));
+    return f;
+}
+
+static inline double uint64_to_double(uint64_t x)
+{
+    double d;
+    memcpy(&d, &x, sizeof(x));
+    return d;
+}
+
+int nanocbor_get_float(nanocbor_value_t *cvalue, float *num)
+{
+    int type = nanocbor_get_type(cvalue);
+    if (type < 0) {
+        return type;
+    }
+
+    int res = NANOCBOR_ERR_INVALID_TYPE;
+    if (type == NANOCBOR_TYPE_FLOAT) {
+        unsigned bytelen = *cvalue->cur & NANOCBOR_VALUE_MASK;
+
+        uint32_t tmp;
+        res = _get_uint64(cvalue, &tmp, NANOCBOR_SIZE_WORD, NANOCBOR_TYPE_FLOAT);
+
+        switch (bytelen) {
+        case NANOCBOR_SIZE_SHORT:
+            *num = IEEE754_HalfToFloat((uint16_t)tmp);
+            break;
+        case NANOCBOR_SIZE_WORD:
+            *num = uint32_to_float((uint32_t)tmp);
+            break;
+        default:
+            res = NANOCBOR_ERR_INVALID_TYPE;
+            break;
+        }
+    }
+
+    return _advance_if(cvalue, res);
+}
+
+int nanocbor_get_double(nanocbor_value_t *cvalue, double *num)
+{
+    int type = nanocbor_get_type(cvalue);
+    if (type < 0) {
+        return type;
+    }
+
+    int res = NANOCBOR_ERR_INVALID_TYPE;
+    if (type == NANOCBOR_TYPE_FLOAT) {
+        unsigned bytelen = *cvalue->cur & NANOCBOR_VALUE_MASK;
+
+        uint64_t tmp;
+        res = _get_uint64(cvalue, (uint32_t*)&tmp, NANOCBOR_SIZE_LONG, NANOCBOR_TYPE_FLOAT);
+
+        switch (bytelen) {
+        case NANOCBOR_SIZE_SHORT:
+            *num = IEEE754_HalfToDouble((uint16_t)tmp);
+            break;
+        case NANOCBOR_SIZE_WORD:
+            *num = (double)uint32_to_float((uint32_t)tmp);
+            break;
+        case NANOCBOR_SIZE_LONG:
+            *num = uint64_to_double(tmp);
+            break;
+        default:
+            res = NANOCBOR_ERR_INVALID_TYPE;
+            break;
+        }
+    }
+
+    return _advance_if(cvalue, res);
 }
 
 int nanocbor_get_tag(nanocbor_value_t *cvalue, uint32_t *tag)

@@ -324,6 +324,28 @@ int nanocbor_get_int32(nanocbor_value_t *cvalue, int32_t *value);
 int nanocbor_get_decimal_frac(nanocbor_value_t *cvalue, int32_t *e, int32_t *m);
 
 /**
+ * @brief Retrieve a float value from the stream
+ *
+ * @param[in]   cvalue  CBOR value to decode from
+ * @param[out]  value   returned float
+ *
+ * @return              number of bytes read
+ * @return              negative on error
+ */
+int nanocbor_get_float(nanocbor_value_t *cvalue, float *num);
+
+/**
+ * @brief Retrieve a double floating point from the stream
+ *
+ * @param[in]   cvalue  CBOR value to decode from
+ * @param[out]  value   returned double
+ *
+ * @return              number of bytes read
+ * @return              negative on error
+ */
+int nanocbor_get_double(nanocbor_value_t *cvalue, double *num);
+
+/**
  * @brief Retrieve a byte string from the stream
  *
  * The resulting @p buf and @p len are undefined if the result is an error
