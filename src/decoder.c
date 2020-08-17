@@ -283,8 +283,7 @@ void nanocbor_leave_container(nanocbor_value_t *it, nanocbor_value_t *container)
 
 static int _skip_simple(nanocbor_value_t *it)
 {
-    uint64_t tmp;
-    (void)tmp;
+    uint64_t tmp = 0;
     int res = _get_uint64(it, (uint32_t*)&tmp, NANOCBOR_SIZE_LONG,
                           nanocbor_get_type(it));
     return _advance_if(it, res);
@@ -313,8 +312,8 @@ int _skip_limited(nanocbor_value_t *it, uint8_t limit)
     int res = type;
 
     if (type == NANOCBOR_TYPE_BSTR || type == NANOCBOR_TYPE_TSTR) {
-        const uint8_t *tmp;
-        size_t len;
+        const uint8_t *tmp = NULL;
+        size_t len = 0;
         res = _get_str(it, &tmp, &len, type);
     }
     /* map or array */
