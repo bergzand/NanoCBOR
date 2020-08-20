@@ -150,6 +150,18 @@ int nanocbor_get_uint32(nanocbor_value_t *cvalue, uint32_t *value)
     return _get_and_advance_uint32(cvalue, value, NANOCBOR_TYPE_UINT);
 }
 
+int nanocbor_get_float(nanocbor_value_t *cvalue, float *value)
+{
+    return _get_and_advance_uint32(cvalue, (uint32_t*)value, NANOCBOR_TYPE_FLOAT);
+}
+
+int nanocbor_get_double(nanocbor_value_t *cvalue, double *value)
+{
+    int res = _get_uint64(cvalue, (uint32_t*)value, NANOCBOR_SIZE_LONG,
+                          NANOCBOR_TYPE_FLOAT);
+    return _advance_if(cvalue, res);
+}
+
 int nanocbor_get_int32(nanocbor_value_t *cvalue, int32_t *value)
 {
     int type = nanocbor_get_type(cvalue);

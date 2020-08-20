@@ -228,6 +228,32 @@ int nanocbor_get_uint32(nanocbor_value_t *cvalue, uint32_t *value);
 int nanocbor_get_int32(nanocbor_value_t *cvalue, int32_t *value);
 
 /**
+ * @brief Retrieve a single precision floating point number from the stream
+ *
+ * The resulting @p value is undefined if the result is an error condition
+ *
+ * @param[in]   cvalue  CBOR value to decode from
+ * @param[out]  value   returned float
+ *
+ * @return              number of bytes read
+ * @return              negative on error
+ */
+int nanocbor_get_float(nanocbor_value_t *cvalue, float *value);
+
+/**
+ * @brief Retrieve a double precision floating point number from the stream
+ *
+ * The resulting @p value is undefined if the result is an error condition
+ *
+ * @param[in]   cvalue  CBOR value to decode from
+ * @param[out]  value   returned double
+ *
+ * @return              number of bytes read
+ * @return              negative on error
+ */
+int nanocbor_get_double(nanocbor_value_t *cvalue, double *value);
+
+/**
  * @brief Retrieve a byte string from the stream
  *
  * The resulting @p buf and @p len are undefined if the result is an error
