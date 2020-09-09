@@ -145,14 +145,15 @@ static int _parse_type(nanocbor_value_t *value, unsigned indent)
         case NANOCBOR_TYPE_FLOAT:
             {
                 bool test;
+                double f;
                 if (nanocbor_get_bool(value, &test) >= NANOCBOR_OK) {
                     test ? printf("True") : printf("False");
                 }
                 else if (nanocbor_get_null(value) >= NANOCBOR_OK) {
                     printf("NULL");
                 }
-                else if (nanocbor_skip_simple(value) >= 0) {
-                    printf("Unsupported float");
+                else if (nanocbor_get_double(value, &f) >= 0) {
+                    printf("%f", f);
                 }
                 else {
                     return -1;
