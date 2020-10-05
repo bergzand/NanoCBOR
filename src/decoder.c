@@ -130,6 +130,28 @@ static int _get_uint64(nanocbor_value_t *cvalue, uint32_t *value, uint8_t max, i
     return (int)(1 + bytes);
 }
 
+static int _get_and_advance_uint8(nanocbor_value_t *cvalue, uint8_t *value,
+                                   int type)
+{
+    uint32_t tmp = 0;
+    int res = _get_uint64(cvalue, &tmp, NANOCBOR_SIZE_BYTE,
+                          type);
+    *value = tmp;
+
+    return _advance_if(cvalue, res);
+}
+
+static int _get_and_advance_uint16(nanocbor_value_t *cvalue, uint16_t *value,
+                                   int type)
+{
+    uint32_t tmp = 0;
+    int res = _get_uint64(cvalue, &tmp, NANOCBOR_SIZE_SHORT,
+                          type);
+    *value = tmp;
+
+    return _advance_if(cvalue, res);
+}
+
 static int _get_and_advance_uint32(nanocbor_value_t *cvalue, uint32_t *value,
                                    int type)
 {
@@ -141,12 +163,23 @@ static int _get_and_advance_uint32(nanocbor_value_t *cvalue, uint32_t *value,
     return _advance_if(cvalue, res);
 }
 
+int nanocbor_get_uint8(nanocbor_value_t *cvalue, uint8_t *value)
+{
+    return _get_and_advance_uint8(cvalue, value, NANOCBOR_TYPE_UINT);
+}
+
+int nanocbor_get_uint16(nanocbor_value_t *cvalue, uint16_t *value)
+{
+    return _get_and_advance_uint16(cvalue, value, NANOCBOR_TYPE_UINT);
+}
+
 int nanocbor_get_uint32(nanocbor_value_t *cvalue, uint32_t *value)
 {
     return _get_and_advance_uint32(cvalue, value, NANOCBOR_TYPE_UINT);
 }
 
-int nanocbor_get_int32(nanocbor_value_t *cvalue, int32_t *value)
+static int _get_and_advance_int32(nanocbor_value_t *cvalue, int32_t *value, uint8_t max,
+                                  uint32_t bound)
 {
     int type = nanocbor_get_type(cvalue);
     if (type < 0) {
@@ -155,9 +188,8 @@ int nanocbor_get_int32(nanocbor_value_t *cvalue, int32_t *value)
     int res = NANOCBOR_ERR_INVALID_TYPE;
     if (type == NANOCBOR_TYPE_NINT || type == NANOCBOR_TYPE_UINT) {
         uint32_t intermediate = 0;
-        res = _get_uint64(cvalue, &intermediate,
-                              NANOCBOR_SIZE_WORD, type);
-        if (intermediate > INT32_MAX) {
+        res = _get_uint64(cvalue, &intermediate, max, type);
+        if (intermediate > bound) {
             res = NANOCBOR_ERR_OVERFLOW;
         }
         if (type == NANOCBOR_TYPE_NINT) {
@@ -168,6 +200,31 @@ int nanocbor_get_int32(nanocbor_value_t *cvalue, int32_t *value)
         }
     }
     return _advance_if(cvalue, res);
+}
+
+int nanocbor_get_int8(nanocbor_value_t *cvalue, int8_t *value)
+{
+    int32_t tmp = 0;
+    int res = _get_and_advance_int32(cvalue, &tmp, NANOCBOR_SIZE_BYTE, INT8_MAX);
+
+    *value = tmp;
+
+    return res;
+}
+
+int nanocbor_get_int16(nanocbor_value_t *cvalue, int16_t *value)
+{
+    int32_t tmp = 0;
+    int res = _get_and_advance_int32(cvalue, &tmp, NANOCBOR_SIZE_SHORT, INT16_MAX);
+
+    *value = tmp;
+
+    return res;
+}
+
+int nanocbor_get_int32(nanocbor_value_t *cvalue, int32_t *value)
+{
+    return _get_and_advance_int32(cvalue, value, NANOCBOR_SIZE_WORD, INT32_MAX);
 }
 
 int nanocbor_get_tag(nanocbor_value_t *cvalue, uint32_t *tag)
