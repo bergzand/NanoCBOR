@@ -273,7 +273,7 @@ int nanocbor_get_bool(nanocbor_value_t *cvalue, bool *value)
     return res;
 }
 
-int _enter_container(nanocbor_value_t *it, nanocbor_value_t *container,
+static int _enter_container(nanocbor_value_t *it, nanocbor_value_t *container,
                      uint8_t type)
 {
     container->end = it->end;
@@ -283,7 +283,7 @@ int _enter_container(nanocbor_value_t *it, nanocbor_value_t *container,
         container->flags = NANOCBOR_DECODER_FLAG_INDEFINITE |
                            NANOCBOR_DECODER_FLAG_CONTAINER;
         container->cur = it->cur;
-        return 1;
+        return 0;
     }
 
     int res = _get_uint64(it, &container->remaining,
