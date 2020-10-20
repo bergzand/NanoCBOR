@@ -279,7 +279,7 @@ int _enter_container(nanocbor_value_t *it, nanocbor_value_t *container,
     container->end = it->end;
     container->remaining = 0;
 
-    if (_value_match_exact(it, (type << NANOCBOR_TYPE_OFFSET | NANOCBOR_SIZE_INDEFINITE)) == 1) {
+    if (_value_match_exact(it, ((type << NANOCBOR_TYPE_OFFSET) | NANOCBOR_SIZE_INDEFINITE)) == 1) {
         container->flags = NANOCBOR_DECODER_FLAG_INDEFINITE |
                            NANOCBOR_DECODER_FLAG_CONTAINER;
         container->cur = it->cur;
