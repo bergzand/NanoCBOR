@@ -596,6 +596,17 @@ int nanocbor_put_bstr(nanocbor_encoder_t *enc, const uint8_t *str, size_t len);
 int nanocbor_put_tstr(nanocbor_encoder_t *enc, const char *str);
 
 /**
+ * @brief Copy n bytes of a text string with indicator into the encoder buffer
+ *
+ * @param[in]   enc     Encoder context
+ * @param[in]   str     text string to encode
+ * @param[in]   len     number of string bytes to copy
+ *
+ * @return              number of bytes written
+ */
+int nanocbor_put_tstrn(nanocbor_encoder_t *enc, const char *str, size_t len);
+
+/**
  * @brief Write an array indicator with @p len items
  *
  * It is assumed that the calling code will encode @p len items after calling

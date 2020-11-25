@@ -148,6 +148,12 @@ int nanocbor_put_tstr(nanocbor_encoder_t *enc, const char *str)
     return _put_bytes(enc, (const uint8_t *)str, len);
 }
 
+int nanocbor_put_tstrn(nanocbor_encoder_t *enc, const char *str, size_t len)
+{
+    nanocbor_fmt_tstr(enc, len);
+    return _put_bytes(enc, (const uint8_t *)str, len);
+}
+
 int nanocbor_put_bstr(nanocbor_encoder_t *enc, const uint8_t *str, size_t len)
 {
     nanocbor_fmt_bstr(enc, len);
