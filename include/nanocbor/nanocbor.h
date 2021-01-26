@@ -89,6 +89,17 @@ extern "C" {
 #define NANOCBOR_SIZE_WORD          26U /**< Value contained in a word */
 #define NANOCBOR_SIZE_LONG          27U /**< Value contained in a long */
 #define NANOCBOR_SIZE_INDEFINITE    31U /**< Indefinite sized container */
+#define NANOCBOR_END_MARKER         (0xFFU) /**< Indefinite end */
+/** @} */
+
+/**
+ * @name CBOR tag types
+ * @{
+ */
+#define NANOCBOR_TAG_TSTR           0U /**< Standard date/time string */
+#define NANOCBOR_TAG_EPOCH          1U /**< Epoch-based date/time */
+#define NANOCBOR_TAG_UBIGNUM        2U /**< Unsigned bignum */
+#define NANOCBOR_TAG_NBIGNUM        3U /**< Negative bignum */
 /** @} */
 
 /**
@@ -186,6 +197,16 @@ void nanocbor_decoder_init(nanocbor_value_t *value,
  * @return              NANOCBOR_ERR_OVERFLOW if the buffer is exhausted
  */
 int nanocbor_get_type(const nanocbor_value_t *value);
+
+/**
+ * @brief Retrieve the CBOR value at the current position
+ *
+ * @param[in]   value   decoder value context
+ *
+ * @return              value
+ * @return              NANOCBOR_ERR_OVERFLOW if the buffer is exhausted
+ */
+int nanocbor_get_value(const nanocbor_value_t *value);
 
 /**
  * @brief Check if the current buffer or container is exhausted
