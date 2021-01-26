@@ -189,6 +189,16 @@ void nanocbor_decoder_init(nanocbor_value_t *value,
 int nanocbor_get_type(const nanocbor_value_t *value);
 
 /**
+ * @brief Retrieve the CBOR value at the current position
+ *
+ * @param[in]   value   decoder value context
+ *
+ * @return              value
+ * @return              NANOCBOR_ERR_OVERFLOW if the buffer is exhausted
+ */
+int nanocbor_get_value(const nanocbor_value_t *value);
+
+/**
  * @brief Check if the current buffer or container is exhausted
  *
  * @param[in]   it      decoder value context

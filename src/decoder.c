@@ -92,6 +92,14 @@ int nanocbor_get_type(const nanocbor_value_t *value)
     return (_get_type(value) >> NANOCBOR_TYPE_OFFSET);
 }
 
+int nanocbor_get_value(const nanocbor_value_t *value)
+{
+    if (nanocbor_at_end(value)) {
+        return NANOCBOR_ERR_END;
+    }
+    return (*value->cur & NANOCBOR_VALUE_MASK);
+}
+
 static int _get_uint64(nanocbor_value_t *cvalue, uint32_t *value, uint8_t max, int type)
 {
     int ctype = nanocbor_get_type(cvalue);
