@@ -89,6 +89,7 @@ extern "C" {
 #define NANOCBOR_SIZE_WORD          26U /**< Value contained in a word */
 #define NANOCBOR_SIZE_LONG          27U /**< Value contained in a long */
 #define NANOCBOR_SIZE_INDEFINITE    31U /**< Indefinite sized container */
+#define NANOCBOR_END_MARKER         (0xFFU) /**< Indefinite end */
 /** @} */
 
 /**

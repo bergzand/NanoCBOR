@@ -75,8 +75,7 @@ bool nanocbor_at_end(const nanocbor_value_t *it)
     /* The container is at the end when */
     if (_over_end(it) || /* Number of items exhausted */
         /* Indefinite container and the current item is the end marker */
-        ((nanocbor_container_indefinite(it) &&
-         *it->cur == (NANOCBOR_TYPE_FLOAT | NANOCBOR_SIZE_INDEFINITE))) ||
+        ((nanocbor_container_indefinite(it) && *it->cur == (NANOCBOR_END_MARKER))) ||
         /* Or the remaining number of items is zero */
         (nanocbor_in_container(it) && it->remaining == 0)
             ) {
