@@ -53,6 +53,35 @@ void _parse_map(nanocbor_value_t *it, unsigned indent)
     }
 }
 
+static int _parse_tag(nanocbor_value_t *value, unsigned indent)
+{
+    if (indent > 10) {
+        return -2;
+    }
+    switch (nanocbor_get_value(value)) {
+        case NANOCBOR_TAG_TSTR:
+            {
+                const uint8_t *buf;
+                size_t len;
+                if (nanocbor_skip_simple(value) <= 0) {
+                    return -1;
+                }
+                if (nanocbor_get_tstr(value, &buf, &len) >= 0) {
+                    printf("\"%.*s\"", (int)len, buf);
+                }
+                else {
+                    return -1;
+                }
+            }
+            break;
+        default:
+            printf("Unsupported type\n");
+            return -1;
+
+    }
+    return 1;
+}
+
 static int _parse_type(nanocbor_value_t *value, unsigned indent)
 {
     uint8_t type = nanocbor_get_type(value);
@@ -159,6 +188,11 @@ static int _parse_type(nanocbor_value_t *value, unsigned indent)
                 }
                 break;
             }
+        case NANOCBOR_TYPE_TAG:
+            {
+                _parse_tag(value, indent);
+            }
+                break;
         default:
             printf("Unsupported type\n");
             return -1;
