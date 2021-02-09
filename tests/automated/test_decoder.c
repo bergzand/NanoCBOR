@@ -6,6 +6,32 @@
 #include "nanocbor/nanocbor.h"
 #include <CUnit/CUnit.h>
 
+static void test_decode_indefinite(void)
+{
+    /* Test vector, 3 integers in an indefinite array */
+    static const uint8_t indefinite[] = {
+        0x9f, 0x01, 0x02, 0x03, 0xff
+    };
+
+    nanocbor_value_t val;
+    nanocbor_value_t cont;
+
+    uint32_t tmp = 0;
+
+    nanocbor_decoder_init(&val, indefinite, sizeof(indefinite));
+
+    CU_ASSERT_EQUAL(nanocbor_enter_array(&val, &cont), NANOCBOR_OK);
+    CU_ASSERT_EQUAL(nanocbor_container_indefinite(&cont), true);
+
+    /* Decode the three values */
+    CU_ASSERT(nanocbor_get_uint32(&cont, &tmp) > 0);
+    CU_ASSERT(nanocbor_get_uint32(&cont, &tmp) > 0);
+    CU_ASSERT(nanocbor_get_uint32(&cont, &tmp) > 0);
+
+    CU_ASSERT_EQUAL(nanocbor_get_uint32(&cont, &tmp), NANOCBOR_ERR_END);
+    CU_ASSERT_EQUAL(nanocbor_at_end(&cont), true);
+}
+
 static void test_decode_none(void)
 {
     nanocbor_value_t val;
@@ -51,6 +77,10 @@ const test_t tests_decoder[] = {
     {
         .f = test_decode_basic,
         .n = "Simple CBOR integer tests",
+    },
+    {
+        .f = test_decode_indefinite,
+        .n = "CBOR indefinite array decode tests",
     },
     {
         .f = NULL,
