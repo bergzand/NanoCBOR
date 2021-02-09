@@ -76,9 +76,9 @@ bool nanocbor_at_end(const nanocbor_value_t *it)
     if (_over_end(it) || /* Number of items exhausted */
         /* Indefinite container and the current item is the end marker */
         ((nanocbor_container_indefinite(it) &&
-         *it->cur == (NANOCBOR_TYPE_FLOAT | NANOCBOR_SIZE_INDEFINITE))) ||
+         *it->cur == (NANOCBOR_TYPE_FLOAT << NANOCBOR_TYPE_OFFSET | NANOCBOR_VALUE_MASK))) ||
         /* Or the remaining number of items is zero */
-        (nanocbor_in_container(it) && it->remaining == 0)
+        (!nanocbor_container_indefinite(it) && nanocbor_in_container(it) && it->remaining == 0)
             ) {
         end = true;
     }
@@ -279,7 +279,7 @@ int _enter_container(nanocbor_value_t *it, nanocbor_value_t *container,
     container->end = it->end;
     container->remaining = 0;
 
-    if (_value_match_exact(it, type | NANOCBOR_VALUE_MASK) == 1) {
+    if (_value_match_exact(it, (((unsigned)type << NANOCBOR_TYPE_OFFSET) | NANOCBOR_SIZE_INDEFINITE)) == 1) {
         container->flags = NANOCBOR_DECODER_FLAG_INDEFINITE |
                            NANOCBOR_DECODER_FLAG_CONTAINER;
         container->cur = it->cur;
