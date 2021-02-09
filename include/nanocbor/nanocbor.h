@@ -183,7 +183,7 @@ void nanocbor_decoder_init(nanocbor_value_t *value,
  * @param[in]   value   decoder value context
  *
  * @return              major type
- * @return              NANOCBOR_ERR_OVERFLOW if the buffer is exhausted
+ * @return              NANOCBOR_ERR_END if the buffer is exhausted
  */
 int nanocbor_get_type(const nanocbor_value_t *value);
 
@@ -299,7 +299,7 @@ int nanocbor_get_int32(nanocbor_value_t *cvalue, int32_t *value);
  * @param[out]  buf     pointer to the byte string
  * @param[out]  len     length of the byte string
  *
- * @return              number of bytes read
+ * @return              NANOCBOR_OK on success
  * @return              negative on error
  */
 int nanocbor_get_bstr(nanocbor_value_t *cvalue, const uint8_t **buf, size_t *len);
@@ -314,7 +314,7 @@ int nanocbor_get_bstr(nanocbor_value_t *cvalue, const uint8_t **buf, size_t *len
  * @param[out]  buf     pointer to the text string
  * @param[out]  len     length of the text string
  *
- * @return              number of bytes read
+ * @return              NANOCBOR_OK on success
  * @return              negative on error
  */
 int nanocbor_get_tstr(nanocbor_value_t *cvalue, const uint8_t **buf, size_t *len);
