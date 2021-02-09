@@ -49,7 +49,6 @@ int main()
     CU_basic_run_tests();
     printf("\n");
 
-    CU_cleanup_registry();
     if (CU_get_number_of_failure_records()) {
         exit(2);
     }
