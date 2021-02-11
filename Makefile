@@ -1,10 +1,13 @@
 NANOCBOR_DIR ?= $(CURDIR)
 
-CC ?= gcc
+# cannot simply use CC ?= gcc, as CC defaults to "cc" if undefined on GNU Make
+ifeq ($(origin CC),default)
+  CC := gcc
+endif
 RM = rm -rf
 TIDY ?= clang-tidy
-CFLAGS ?= 
- 
+CFLAGS ?=
+
 INC_GLOBAL ?= /usr/include
 INC_DIR = $(NANOCBOR_DIR)/include
 SRC_DIR = $(NANOCBOR_DIR)/src
@@ -19,7 +22,7 @@ CFLAGS_TIDY ?= -std=c99
 TIDYFLAGS=-checks=* -warnings-as-errors=*
 
 CFLAGS_WARN += -Wall -Wextra -pedantic -Werror -Wshadow
-CFLAGS += -fPIC $(CFLAGS_WARN) -I$(INC_DIR) -I$(INC_GLOBAL) -Os 
+CFLAGS += -fPIC $(CFLAGS_WARN) -I$(INC_DIR) -I$(INC_GLOBAL) -Os
 
 SRCS ?= $(wildcard $(SRC_DIR)/*.c)
 OBJS ?= $(patsubst $(SRC_DIR)/%.c,$(OBJ_DIR)/%.o,$(SRCS))
