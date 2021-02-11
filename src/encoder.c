@@ -113,8 +113,8 @@ int nanocbor_fmt_int(nanocbor_encoder_t *enc, int64_t num)
 {
     if (num < 0) {
         /* Always negative at this point */
-        num = -1 * (num + 1);
-        return _fmt_uint64(enc, num, NANOCBOR_MASK_NINT);
+        num = -(num + 1);
+        return _fmt_uint64(enc, (uint64_t)num, NANOCBOR_MASK_NINT);
     }
     return nanocbor_fmt_uint(enc, (uint64_t)num);
 }
