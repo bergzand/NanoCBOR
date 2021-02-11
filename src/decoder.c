@@ -196,7 +196,7 @@ static int _get_and_advance_int32(nanocbor_value_t *cvalue, int32_t *value, uint
             *value = (-(int32_t)intermediate) - 1;
         }
         else {
-            *value = intermediate;
+            *value = (int32_t)intermediate;
         }
     }
     return _advance_if(cvalue, res);
@@ -242,7 +242,7 @@ static int _get_str(nanocbor_value_t *cvalue, const uint8_t **buf, size_t *len, 
     }
     if (res > 0) {
         *buf = (cvalue->cur) + res;
-        _advance(cvalue, (unsigned int)(res + *len));
+        _advance(cvalue, (unsigned int)((size_t)res + *len));
     }
     return res;
 }
@@ -335,7 +335,7 @@ int nanocbor_get_subcbor(nanocbor_value_t *it, const uint8_t **start,
 {
     *start = it->cur;
     int res = nanocbor_skip(it);
-    *len = it->cur - *start;
+    *len = (size_t)(it->cur - *start);
     return res;
 }
 
