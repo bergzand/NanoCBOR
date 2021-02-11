@@ -344,7 +344,7 @@ int nanocbor_skip_simple(nanocbor_value_t *it)
     return _skip_simple(it);
 }
 
-int _skip_limited(nanocbor_value_t *it, uint8_t limit)
+static int _skip_limited(nanocbor_value_t *it, uint8_t limit)
 {
     if (limit == 0) {
         return NANOCBOR_ERR_RECURSION;
