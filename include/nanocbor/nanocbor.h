@@ -359,7 +359,7 @@ void nanocbor_leave_container(nanocbor_value_t *it, nanocbor_value_t *container)
  * The resulting @p value is undefined if the result is an error condition
  *
  * @param[in]   cvalue  CBOR value to decode from
- * @param[out]  value   returned tag as positive integer
+ * @param[out]  tag     returned tag as positive integer
  *
  * @return              number of bytes read
  * @return              negative on error
