@@ -297,7 +297,7 @@ int nanocbor_fmt_float(nanocbor_encoder_t *enc, float num)
         uint16_t half = ((*unum >> (FLOAT_SIZE - HALF_SIZE)) & HALF_SIGN_MASK);
         /* Shift exponent */
         if (exp != FLOAT_EXP_IS_NAN && exp != 0) {
-            exp = exp + (HALF_EXP_OFFSET - FLOAT_EXP_OFFSET);
+            exp = exp + (uint8_t)(HALF_EXP_OFFSET - FLOAT_EXP_OFFSET);
         }
         /* Add exponent */
         half |= ((exp & HALF_EXP_MASK) << HALF_EXP_POS) |
