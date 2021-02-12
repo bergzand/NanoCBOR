@@ -273,7 +273,7 @@ int nanocbor_get_bool(nanocbor_value_t *cvalue, bool *value)
     return res;
 }
 
-int _enter_container(nanocbor_value_t *it, nanocbor_value_t *container,
+static int _enter_container(nanocbor_value_t *it, nanocbor_value_t *container,
                      uint8_t type)
 {
     container->end = it->end;
