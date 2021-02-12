@@ -136,7 +136,7 @@ static int _get_and_advance_uint8(nanocbor_value_t *cvalue, uint8_t *value,
     uint32_t tmp = 0;
     int res = _get_uint64(cvalue, &tmp, NANOCBOR_SIZE_BYTE,
                           type);
-    *value = tmp;
+    *value = (uint8_t)tmp;
 
     return _advance_if(cvalue, res);
 }
@@ -147,7 +147,7 @@ static int _get_and_advance_uint16(nanocbor_value_t *cvalue, uint16_t *value,
     uint32_t tmp = 0;
     int res = _get_uint64(cvalue, &tmp, NANOCBOR_SIZE_SHORT,
                           type);
-    *value = tmp;
+    *value = (uint16_t)tmp;
 
     return _advance_if(cvalue, res);
 }
@@ -207,7 +207,7 @@ int nanocbor_get_int8(nanocbor_value_t *cvalue, int8_t *value)
     int32_t tmp = 0;
     int res = _get_and_advance_int32(cvalue, &tmp, NANOCBOR_SIZE_BYTE, INT8_MAX);
 
-    *value = tmp;
+    *value = (int8_t)tmp;
 
     return res;
 }
@@ -217,7 +217,7 @@ int nanocbor_get_int16(nanocbor_value_t *cvalue, int16_t *value)
     int32_t tmp = 0;
     int res = _get_and_advance_int32(cvalue, &tmp, NANOCBOR_SIZE_SHORT, INT16_MAX);
 
-    *value = tmp;
+    *value = (int16_t)tmp;
 
     return res;
 }
@@ -279,7 +279,7 @@ static int _enter_container(nanocbor_value_t *it, nanocbor_value_t *container,
     container->end = it->end;
     container->remaining = 0;
 
-    if (_value_match_exact(it, (((unsigned)type << NANOCBOR_TYPE_OFFSET) | NANOCBOR_SIZE_INDEFINITE)) == 1) {
+    if (_value_match_exact(it, (uint8_t)(((unsigned)type << NANOCBOR_TYPE_OFFSET) | NANOCBOR_SIZE_INDEFINITE)) == 1) {
         container->flags = NANOCBOR_DECODER_FLAG_INDEFINITE |
                            NANOCBOR_DECODER_FLAG_CONTAINER;
         container->cur = it->cur;
@@ -355,7 +355,7 @@ static int _skip_limited(nanocbor_value_t *it, uint8_t limit)
     if (type == NANOCBOR_TYPE_BSTR || type == NANOCBOR_TYPE_TSTR) {
         const uint8_t *tmp = NULL;
         size_t len = 0;
-        res = _get_str(it, &tmp, &len, type);
+        res = _get_str(it, &tmp, &len, (uint8_t)type);
     }
     /* map or array */
     else if (type == NANOCBOR_TYPE_ARR || type == NANOCBOR_TYPE_MAP) {
