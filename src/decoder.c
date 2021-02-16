@@ -64,7 +64,7 @@ static int _value_match_exact(nanocbor_value_t *cvalue, uint8_t val)
     }
     else if (*cvalue->cur == val) {
         _advance(cvalue, 1U);
-        res = 1; /* simple CBOR value is 1 byte */
+        res = NANOCBOR_OK;
     }
     return res;
 }
@@ -243,6 +243,7 @@ static int _get_str(nanocbor_value_t *cvalue, const uint8_t **buf, size_t *len, 
     if (res > 0) {
         *buf = (cvalue->cur) + res;
         _advance(cvalue, (unsigned int)((size_t)res + *len));
+        res = NANOCBOR_OK;
     }
     return res;
 }
@@ -279,7 +280,7 @@ static int _enter_container(nanocbor_value_t *it, nanocbor_value_t *container,
     container->end = it->end;
     container->remaining = 0;
 
-    if (_value_match_exact(it, (uint8_t)(((unsigned)type << NANOCBOR_TYPE_OFFSET) | NANOCBOR_SIZE_INDEFINITE)) == 1) {
+    if (_value_match_exact(it, (uint8_t)(((unsigned)type << NANOCBOR_TYPE_OFFSET) | NANOCBOR_SIZE_INDEFINITE)) == NANOCBOR_OK) {
         container->flags = NANOCBOR_DECODER_FLAG_INDEFINITE |
                            NANOCBOR_DECODER_FLAG_CONTAINER;
         container->cur = it->cur;
@@ -288,11 +289,12 @@ static int _enter_container(nanocbor_value_t *it, nanocbor_value_t *container,
 
     int res = _get_uint64(it, &container->remaining,
                           NANOCBOR_SIZE_WORD, type);
-    if (res > 0) {
-        container->flags = NANOCBOR_DECODER_FLAG_CONTAINER;
-        container->cur = it->cur + res;
+    if (res < 0) {
+        return res;
     }
-    return res;
+    container->flags = NANOCBOR_DECODER_FLAG_CONTAINER;
+    container->cur = it->cur + res;
+    return NANOCBOR_OK;
 }
 
 int nanocbor_enter_array(nanocbor_value_t *it, nanocbor_value_t *array)
