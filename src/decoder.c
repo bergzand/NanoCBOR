@@ -240,7 +240,7 @@ static int _get_str(nanocbor_value_t *cvalue, const uint8_t **buf, size_t *len, 
     if (cvalue->end - cvalue->cur < 0 || (size_t)(cvalue->end - cvalue->cur) < *len) {
         return NANOCBOR_ERR_END;
     }
-    if (res > 0) {
+    if (res >= 0) {
         *buf = (cvalue->cur) + res;
         _advance(cvalue, (unsigned int)((size_t)res + *len));
         res = NANOCBOR_OK;
@@ -384,4 +384,32 @@ static int _skip_limited(nanocbor_value_t *it, uint8_t limit)
 int nanocbor_skip(nanocbor_value_t *it)
 {
     return _skip_limited(it, NANOCBOR_RECURSION_MAX);
+}
+
+int nanocbor_get_key_tstr(nanocbor_value_t *start, const char *key,
+                          nanocbor_value_t *value)
+{
+    int res = NANOCBOR_NOT_FOUND;
+    size_t len = strlen(key);
+    *value = *start;
+
+    while (!nanocbor_at_end(value)) {
+        const uint8_t *s = NULL;
+        size_t s_len = 0;
+
+        if ((res = nanocbor_get_tstr(value, &s, &s_len)) < 0) {
+            break;
+        }
+
+        if (s_len == len && !strncmp(key, (char*)s, len)) {
+            res = NANOCBOR_OK;
+            break;
+        }
+
+        if ((res = nanocbor_skip(value)) < 0) {
+            break;
+        }
+    }
+
+    return res;
 }
