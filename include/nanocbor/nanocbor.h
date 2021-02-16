@@ -120,6 +120,11 @@ typedef enum {
      * @brief Decoder hits the recursion limit
      */
     NANOCBOR_ERR_RECURSION = -4,
+
+    /**
+     * @brief Decoder could not find the requested entry
+     */
+    NANOCBOR_NOT_FOUND = -5,
 } nanocbor_error_t;
 
 
@@ -318,6 +323,23 @@ int nanocbor_get_bstr(nanocbor_value_t *cvalue, const uint8_t **buf, size_t *len
  * @return              negative on error
  */
 int nanocbor_get_tstr(nanocbor_value_t *cvalue, const uint8_t **buf, size_t *len);
+
+/**
+ * @brief Search for a tstr key in a map.
+ *
+ * The resulting @p value is undefined if @p key was not found.
+ *
+ * @pre @p start is inside a map
+ *
+ * @param[in]   start   pointer to the map to search
+ * @param[in]   key     pointer to the text string key
+ * @param[out]  value   pointer to the tstr value containing @p key if found
+ *
+ * @return              NANOCBOR_OK if @p key was found
+ * @return              negative on error / not found
+ */
+int nanocbor_get_key_tstr(nanocbor_value_t *start, const char *key,
+                          nanocbor_value_t *value);
 
 /**
  * @brief Enter a array type
