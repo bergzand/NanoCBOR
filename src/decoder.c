@@ -240,7 +240,7 @@ static int _get_str(nanocbor_value_t *cvalue, const uint8_t **buf, size_t *len, 
     if (cvalue->end - cvalue->cur < 0 || (size_t)(cvalue->end - cvalue->cur) < *len) {
         return NANOCBOR_ERR_END;
     }
-    if (res > 0) {
+    if (res >= 0) {
         *buf = (cvalue->cur) + res;
         _advance(cvalue, (unsigned int)((size_t)res + *len));
         res = NANOCBOR_OK;
