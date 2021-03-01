@@ -229,7 +229,14 @@ int nanocbor_get_int32(nanocbor_value_t *cvalue, int32_t *value)
 
 int nanocbor_get_tag(nanocbor_value_t *cvalue, uint32_t *tag)
 {
-    return _get_and_advance_uint32(cvalue, tag, NANOCBOR_TYPE_TAG);
+    int res = _get_uint64(cvalue, tag, NANOCBOR_SIZE_WORD, NANOCBOR_TYPE_TAG);
+
+    if (res >= 0) {
+        cvalue->cur += res;
+        res = NANOCBOR_OK;
+    }
+
+    return res;
 }
 
 static int _get_str(nanocbor_value_t *cvalue, const uint8_t **buf, size_t *len, uint8_t type)
