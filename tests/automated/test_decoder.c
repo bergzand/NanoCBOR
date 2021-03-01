@@ -32,6 +32,33 @@ static void test_decode_indefinite(void)
     CU_ASSERT_EQUAL(nanocbor_at_end(&cont), true);
 }
 
+static void test_tag(void)
+{
+    static const uint8_t arraytag[] = {
+        0x82, 0xc1, 0x01, 0x02
+    };
+
+    nanocbor_value_t val;
+    nanocbor_value_t cont;
+
+    uint32_t tmp = 0;
+
+    nanocbor_decoder_init(&val, arraytag, sizeof(arraytag));
+
+    CU_ASSERT_EQUAL(nanocbor_enter_array(&val, &cont), NANOCBOR_OK);
+
+    CU_ASSERT_EQUAL(nanocbor_get_tag(&cont, &tmp), NANOCBOR_OK);
+    CU_ASSERT_EQUAL(tmp, 1);
+
+    CU_ASSERT(nanocbor_get_uint32(&cont, &tmp) > 0);
+    CU_ASSERT_EQUAL(tmp, 1);
+
+    CU_ASSERT(nanocbor_get_uint32(&cont, &tmp) > 0);
+    CU_ASSERT_EQUAL(tmp, 2);
+
+    CU_ASSERT_EQUAL(nanocbor_at_end(&cont), true);
+}
+
 static void test_decode_none(void)
 {
     nanocbor_value_t val;
@@ -81,6 +108,10 @@ const test_t tests_decoder[] = {
     {
         .f = test_decode_indefinite,
         .n = "CBOR indefinite array decode tests",
+    },
+    {
+        .f = test_tag,
+        .n = "CBOR tag decode test",
     },
     {
         .f = NULL,
