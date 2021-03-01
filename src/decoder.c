@@ -408,7 +408,7 @@ int nanocbor_get_key_tstr(nanocbor_value_t *start, const char *key,
             break;
         }
 
-        if (s_len == len && !strncmp(key, (char*)s, len)) {
+        if (s_len == len && !strncmp(key, (const char *)s, len)) {
             res = NANOCBOR_OK;
             break;
         }
