@@ -372,7 +372,7 @@ static int _skip_limited(nanocbor_value_t *it, uint8_t limit)
         res = (type == NANOCBOR_TYPE_MAP
                ? nanocbor_enter_map(it, &recurse)
                : nanocbor_enter_array(it, &recurse));
-        if (res > 0) {
+        if (res == NANOCBOR_OK) {
             while (!nanocbor_at_end(&recurse)) {
                 res = _skip_limited(&recurse, limit - 1);
                 if (res < 0) {
@@ -385,7 +385,7 @@ static int _skip_limited(nanocbor_value_t *it, uint8_t limit)
     else if (type >= 0) {
         res = _skip_simple(it);
     }
-    return res;
+    return res < 0 ? res : NANOCBOR_OK;
 }
 
 int nanocbor_skip(nanocbor_value_t *it)
