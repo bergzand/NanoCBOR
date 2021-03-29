@@ -37,14 +37,15 @@ size_t nanocbor_encoded_len(nanocbor_encoder_t *enc)
 static int _fits(nanocbor_encoder_t *enc, size_t len)
 {
     enc->len += len;
-    return ((size_t)(enc->end - enc->cur) >= len) ? 0 : -1;
+    return ((size_t)(enc->end - enc->cur) >= len) ? (int)len :
+        NANOCBOR_ERR_END;
 }
 
 static int _fmt_single(nanocbor_encoder_t *enc, uint8_t single)
 {
     int res = _fits(enc, 1);
 
-    if (res == 0) {
+    if (res == 1) {
         *enc->cur++ = single;
     }
     return res;
@@ -86,7 +87,7 @@ static int _fmt_uint64(nanocbor_encoder_t *enc, uint64_t num, uint8_t type)
         }
     }
     int res = _fits(enc, extrabytes + 1);
-    if (res == 0) {
+    if (res > 0) {
         *enc->cur++ = type;
 
         /* NOLINTNEXTLINE: user supplied function */
@@ -133,9 +134,10 @@ static int _put_bytes(nanocbor_encoder_t *enc, const uint8_t *str, size_t len)
 {
     int res = _fits(enc, len);
 
-    if (res == 0) {
+    if (res >= 0) {
         memcpy(enc->cur, str, len);
         enc->cur += len;
+        return NANOCBOR_OK;
     }
     return res;
 }
@@ -251,7 +253,7 @@ static bool _single_in_range(uint8_t exp, uint32_t num)
 static int _fmt_halffloat(nanocbor_encoder_t *enc, uint16_t half)
 {
     int res = _fits(enc, sizeof(uint16_t) + 1);
-    if (res == 0) {
+    if (res > 0) {
         *enc->cur++ = NANOCBOR_MASK_FLOAT | NANOCBOR_SIZE_SHORT;
         *enc->cur++ = (half >> HALF_SIZE/2);
         *enc->cur++ =  half & HALF_MASK_HALF;
@@ -306,13 +308,12 @@ int nanocbor_fmt_float(nanocbor_encoder_t *enc, float num)
     }
     /* normal float */
     int res = _fits(enc, 1 + sizeof(float));
-    if (res == 0) {
+    if (res > 0) {
         *enc->cur++ = NANOCBOR_MASK_FLOAT | NANOCBOR_SIZE_WORD;
         /* NOLINTNEXTLINE: user supplied function */
         uint32_t bnum = NANOCBOR_HTOBE32_FUNC(*unum);
         memcpy(enc->cur, &bnum, sizeof(bnum));
         enc->cur += sizeof(float);
-        res = sizeof(float) + 1;
     }
     return res;
 }
@@ -336,13 +337,12 @@ int nanocbor_fmt_double(nanocbor_encoder_t *enc, double num)
         return nanocbor_fmt_float(enc, *fsingle);
     }
     int res = _fits(enc, 1 + sizeof(double));
-    if (res == 0) {
+    if (res > 0) {
         *enc->cur++ = NANOCBOR_MASK_FLOAT | NANOCBOR_SIZE_LONG;
         /* NOLINTNEXTLINE: user supplied function */
         uint64_t bnum = NANOCBOR_HTOBE64_FUNC(*unum);
         memcpy(enc->cur, &bnum, sizeof(bnum));
         enc->cur += sizeof(double);
-        res = sizeof(double) + 1;
     }
     return res;
 }
