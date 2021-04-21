@@ -346,3 +346,12 @@ int nanocbor_fmt_double(nanocbor_encoder_t *enc, double num)
     }
     return res;
 }
+
+int nanocbor_fmt_decimal_frac(nanocbor_encoder_t *enc, int32_t e, int32_t m)
+{
+    int res =  nanocbor_fmt_tag(enc, NANOCBOR_TAG_DEC_FRAC);
+    res += nanocbor_fmt_array(enc, 2);
+    res += nanocbor_fmt_int(enc, e);
+    res += nanocbor_fmt_int(enc, m);
+    return res;
+}

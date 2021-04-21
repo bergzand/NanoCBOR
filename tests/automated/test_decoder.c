@@ -139,6 +139,14 @@ static void test_decode_basic(void)
     nanocbor_decoder_init(&decoder, &byteval, sizeof(byteval));
     CU_ASSERT_EQUAL(nanocbor_get_int32(&decoder, &intval), 1);
     CU_ASSERT_EQUAL(5, intval);
+
+    const uint8_t decimal_frac[] = { 0xC4, 0x82, 0x21, 0x19, 0x6a, 0xb3 };
+    int32_t m;
+    int32_t e;
+    nanocbor_decoder_init(&decoder, decimal_frac, sizeof(decimal_frac));
+    CU_ASSERT_EQUAL(nanocbor_get_decimal_frac(&decoder, &e, &m), 0);
+    CU_ASSERT_EQUAL(e, -2);
+    CU_ASSERT_EQUAL(m, 27315);
 }
 
 const test_t tests_decoder[] = {

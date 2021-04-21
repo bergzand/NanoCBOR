@@ -295,6 +295,23 @@ int nanocbor_get_int16(nanocbor_value_t *cvalue, int16_t *value);
 int nanocbor_get_int32(nanocbor_value_t *cvalue, int32_t *value);
 
 /**
+ * @brief Retrieve a decimal fraction from the stream as a int32_t mantisa and
+ *        int32_t exponent
+ *
+ * If the value at `cvalue` is greater than 32 bit, error is returned.
+ *
+ * The resulting @p value is undefined if the result is an error condition
+ *
+ * @param[in]   cvalue  CBOR value to decode from
+ * @param[out]  m       returned mantisa
+ * @param[out]  e       returned exponent
+ *
+ * @return              NANOCBOR_OK on success
+ * @return              negative on error
+ */
+int nanocbor_get_decimal_frac(nanocbor_value_t *cvalue, int32_t *e, int32_t *m);
+
+/**
  * @brief Retrieve a byte string from the stream
  *
  * The resulting @p buf and @p len are undefined if the result is an error
@@ -711,6 +728,17 @@ int nanocbor_fmt_float(nanocbor_encoder_t *enc, float num);
  * @return              Number of bytes written
  */
 int nanocbor_fmt_double(nanocbor_encoder_t *enc, double num);
+
+/**
+ * @brief Write a decimal fraction into the encoder buffer
+ *
+ * @param[in]   enc     Encoder context
+ * @param[in]   m       Mantisa
+ * @param[in]   e       Exponent
+ *
+ * @return              Number of bytes written
+ */
+int nanocbor_fmt_decimal_frac(nanocbor_encoder_t *enc, int32_t e, int32_t m);
 
 /** @} */
 
