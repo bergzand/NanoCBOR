@@ -92,6 +92,18 @@ extern "C" {
 /** @} */
 
 /**
+ * @name CBOR Tag values
+ * @{
+ */
+#define NANOCBOR_TAG_DATE_TIME      (0x0) /**< Standard date/time string */
+#define NANOCBOR_TAG_EPOCH          (0x1) /**< Epoch-based date/time */
+#define NANOCBOR_TAG_BIGNUMS_P      (0x2) /**< Positive bignum */
+#define NANOCBOR_TAG_BIGNUMS_N      (0x3) /**< Negative bignum */
+#define NANOCBOR_TAG_DEC_FRAC       (0x4) /**< Decimal Fraction */
+#define NANOCBOR_TAG_BIGFLOATS      (0x5) /**< Bigfloat */
+/** @} */
+
+/**
  * @brief NanoCBOR decoder errors
  */
 typedef enum {
