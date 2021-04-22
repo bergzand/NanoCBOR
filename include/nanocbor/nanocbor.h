@@ -412,8 +412,7 @@ void nanocbor_leave_container(nanocbor_value_t *it, nanocbor_value_t *container)
  * @param[in]   cvalue  CBOR value to decode from
  * @param[out]  tag     returned tag as positive integer
  *
- * @return              number of bytes read
- * @return              negative on error
+ * @return              NANOCBOR_OK on success
  */
 int nanocbor_get_tag(nanocbor_value_t *cvalue, uint32_t *tag);
 
