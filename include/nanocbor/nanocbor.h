@@ -546,13 +546,11 @@ void nanocbor_encoder_init(nanocbor_encoder_t *enc,
  * @ref nanocbor_encoder_init into account, it only returns the number of bytes
  * the current CBOR structure would take up.
  *
- * @param[in]   enc Encoder context
+ * @param[in]   enc     Encoder context
  *
- * @return          Length of the encoded structure
+ * @return              Length of the encoded structure
  */
 size_t nanocbor_encoded_len(nanocbor_encoder_t *enc);
-
-
 
 /**
  * @brief Write a CBOR boolean value into a buffer
@@ -561,6 +559,7 @@ size_t nanocbor_encoded_len(nanocbor_encoder_t *enc);
  * @param[in]   content Boolean value to write
  *
  * @return              Number of bytes written
+ * @return              Negative on error
  */
 int nanocbor_fmt_bool(nanocbor_encoder_t *enc, bool content);
 
@@ -570,7 +569,8 @@ int nanocbor_fmt_bool(nanocbor_encoder_t *enc, bool content);
  * @param[in]   enc     Encoder context
  * @param[in]   num     unsigned integer to write
  *
- * @return  number of bytes written
+ * @return              number of bytes written
+ * @return              Negative on error
  */
 int nanocbor_fmt_uint(nanocbor_encoder_t *enc, uint64_t num);
 
@@ -580,7 +580,8 @@ int nanocbor_fmt_uint(nanocbor_encoder_t *enc, uint64_t num);
  * @param[in]   enc     Encoder context
  * @param[in]   num     tag value to write into the buffer
  *
- * @return  number of bytes written
+ * @return              number of bytes written
+ * @return              Negative on error
  */
 int nanocbor_fmt_tag(nanocbor_encoder_t *enc, uint64_t num);
 
@@ -593,6 +594,7 @@ int nanocbor_fmt_tag(nanocbor_encoder_t *enc, uint64_t num);
  * @param[in]   num     unsigned integer to write
  *
  * @return              number of bytes written
+ * @return              Negative on error
  */
 int nanocbor_fmt_int(nanocbor_encoder_t *enc, int64_t num);
 
@@ -607,6 +609,7 @@ int nanocbor_fmt_int(nanocbor_encoder_t *enc, int64_t num);
  * @param[in]   len     Length of the byte string
  *
  * @return              number of bytes written
+ * @return              Negative on error
  */
 int nanocbor_fmt_bstr(nanocbor_encoder_t *enc, size_t len);
 
@@ -621,6 +624,7 @@ int nanocbor_fmt_bstr(nanocbor_encoder_t *enc, size_t len);
  * @param[in]   len     Length of the text string
  *
  * @return              number of bytes written
+ * @return              Negative on error
  */
 int nanocbor_fmt_tstr(nanocbor_encoder_t *enc, size_t len);
 
@@ -631,7 +635,8 @@ int nanocbor_fmt_tstr(nanocbor_encoder_t *enc, size_t len);
  * @param[in]   str     byte string to encode
  * @param[in]   len     Length of the string
  *
- * @return              number of bytes written
+ * @return              NANOCBOR_OK if the string fits
+ * @return              Negative on error
  */
 int nanocbor_put_bstr(nanocbor_encoder_t *enc, const uint8_t *str, size_t len);
 
@@ -641,7 +646,8 @@ int nanocbor_put_bstr(nanocbor_encoder_t *enc, const uint8_t *str, size_t len);
  * @param[in]   enc     Encoder context
  * @param[in]   str     null terminated text string to encode
  *
- * @return              number of bytes written
+ * @return              NANOCBOR_OK if the string fits
+ * @return              Negative on error
  */
 int nanocbor_put_tstr(nanocbor_encoder_t *enc, const char *str);
 
@@ -652,7 +658,8 @@ int nanocbor_put_tstr(nanocbor_encoder_t *enc, const char *str);
  * @param[in]   str     text string to encode
  * @param[in]   len     number of string bytes to copy
  *
- * @return              number of bytes written
+ * @return              NANOCBOR_OK if the string fits
+ * @return              Negative on error
  */
 int nanocbor_put_tstrn(nanocbor_encoder_t *enc, const char *str, size_t len);
 
@@ -667,6 +674,7 @@ int nanocbor_put_tstrn(nanocbor_encoder_t *enc, const char *str, size_t len);
  * @param[in]   len     Number of items in the array
  *
  * @return              Number of bytes written
+ * @return              Negative on error
  */
 int nanocbor_fmt_array(nanocbor_encoder_t *enc, size_t len);
 
@@ -681,6 +689,7 @@ int nanocbor_fmt_array(nanocbor_encoder_t *enc, size_t len);
  * @param[in]   len     Number of pairs in the map
  *
  * @return              Number of bytes written
+ * @return              Negative on error
  */
 int nanocbor_fmt_map(nanocbor_encoder_t *enc, size_t len);
 
@@ -690,6 +699,7 @@ int nanocbor_fmt_map(nanocbor_encoder_t *enc, size_t len);
  * @param[in]   enc     Encoder context
  *
  * @return              Number of bytes written
+ * @return              Negative on error
  */
 int nanocbor_fmt_array_indefinite(nanocbor_encoder_t *enc);
 
@@ -699,6 +709,7 @@ int nanocbor_fmt_array_indefinite(nanocbor_encoder_t *enc);
  * @param[in]   enc     Encoder context
  *
  * @return              Number of bytes written
+ * @return              Negative on error
  */
 int nanocbor_fmt_map_indefinite(nanocbor_encoder_t *enc);
 
@@ -708,6 +719,7 @@ int nanocbor_fmt_map_indefinite(nanocbor_encoder_t *enc);
  * @param[in]   enc     Encoder context
  *
  * @return              Number of bytes written
+ * @return              Negative on error
  */
 int nanocbor_fmt_end_indefinite(nanocbor_encoder_t *enc);
 
@@ -716,7 +728,8 @@ int nanocbor_fmt_end_indefinite(nanocbor_encoder_t *enc);
  *
  * @param[in]   enc     Encoder context
  *
- * @return              Number of bytes written
+ * @return              NANOCBOR_OK
+ * @return              Negative on error
  */
 int nanocbor_fmt_null(nanocbor_encoder_t *enc);
 
@@ -727,6 +740,7 @@ int nanocbor_fmt_null(nanocbor_encoder_t *enc);
  * @param[in]   num     Floating point to encode
  *
  * @return              Number of bytes written
+ * @return              Negative on error
  */
 int nanocbor_fmt_float(nanocbor_encoder_t *enc, float num);
 
@@ -737,6 +751,7 @@ int nanocbor_fmt_float(nanocbor_encoder_t *enc, float num);
  * @param[in]   num     Floating point to encode
  *
  * @return              Number of bytes written
+ * @return              Negative on error
  */
 int nanocbor_fmt_double(nanocbor_encoder_t *enc, double num);
 
