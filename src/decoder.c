@@ -345,9 +345,6 @@ int nanocbor_enter_map(nanocbor_value_t *it, nanocbor_value_t *map)
 
 void nanocbor_leave_container(nanocbor_value_t *it, nanocbor_value_t *container)
 {
-    if (it->remaining) {
-        it->remaining--;
-    }
     if (nanocbor_container_indefinite(container)) {
         it->cur = container->cur + 1;
     }
