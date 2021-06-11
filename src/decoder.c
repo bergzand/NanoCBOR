@@ -34,7 +34,7 @@ void nanocbor_decoder_init(nanocbor_value_t *value,
 static void _advance(nanocbor_value_t *cvalue, unsigned int res, bool dec_remaining)
 {
     cvalue->cur += res;
-    if (dec_remaining) {
+    if (dec_remaining && cvalue->remaining) {
         cvalue->remaining--;
     }
 }
