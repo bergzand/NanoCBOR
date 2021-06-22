@@ -93,7 +93,7 @@ int nanocbor_get_type(const nanocbor_value_t *value)
     return (_get_type(value) >> NANOCBOR_TYPE_OFFSET);
 }
 
-static int _get_uint64(nanocbor_value_t *cvalue, uint32_t *value, uint8_t max, int type)
+static int _get_uint64(const nanocbor_value_t *cvalue, uint32_t *value, uint8_t max, int type)
 {
     int ctype = nanocbor_get_type(cvalue);
 
@@ -304,16 +304,19 @@ int nanocbor_get_bool(nanocbor_value_t *cvalue, bool *value)
     return res;
 }
 
-static int _enter_container(nanocbor_value_t *it, nanocbor_value_t *container,
+static int _enter_container(const nanocbor_value_t *it, nanocbor_value_t *container,
                      uint8_t type)
 {
     container->end = it->end;
     container->remaining = 0;
 
-    if (_value_match_exact(it, (uint8_t)(((unsigned)type << NANOCBOR_TYPE_OFFSET) | NANOCBOR_SIZE_INDEFINITE)) == NANOCBOR_OK) {
+    uint8_t value_match = (uint8_t)(((unsigned)type << NANOCBOR_TYPE_OFFSET) | NANOCBOR_SIZE_INDEFINITE);
+
+    /* Not using _value_match_exact here to keep *it const */
+    if (!_over_end(it) && *it->cur == value_match) {
         container->flags = NANOCBOR_DECODER_FLAG_INDEFINITE |
                            NANOCBOR_DECODER_FLAG_CONTAINER;
-        container->cur = it->cur;
+        container->cur = it->cur + 1;
         return NANOCBOR_OK;
     }
 
@@ -327,12 +330,12 @@ static int _enter_container(nanocbor_value_t *it, nanocbor_value_t *container,
     return NANOCBOR_OK;
 }
 
-int nanocbor_enter_array(nanocbor_value_t *it, nanocbor_value_t *array)
+int nanocbor_enter_array(const nanocbor_value_t *it, nanocbor_value_t *array)
 {
     return _enter_container(it, array, NANOCBOR_TYPE_ARR);
 }
 
-int nanocbor_enter_map(nanocbor_value_t *it, nanocbor_value_t *map)
+int nanocbor_enter_map(const nanocbor_value_t *it, nanocbor_value_t *map)
 {
     int res = _enter_container(it, map, NANOCBOR_TYPE_MAP);
 
