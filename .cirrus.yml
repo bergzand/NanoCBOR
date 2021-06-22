@@ -22,7 +22,7 @@ build_task:
           image: silkeh/clang:7
           image: silkeh/clang:8
       install_libgcc_script:
-        - apt install -y libgcc-7-dev
+        - apt install -y libgcc-9-dev
     - name: gcc
       env:
         CC: gcc

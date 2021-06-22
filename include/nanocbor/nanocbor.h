@@ -379,7 +379,7 @@ int nanocbor_get_key_tstr(nanocbor_value_t *start, const char *key,
  * @return              NANOCBOR_OK on success
  * @return              negative on error
  */
-int nanocbor_enter_array(nanocbor_value_t *it, nanocbor_value_t *array);
+int nanocbor_enter_array(const nanocbor_value_t *it, nanocbor_value_t *array);
 
 /**
  * @brief Enter a map type
@@ -390,7 +390,7 @@ int nanocbor_enter_array(nanocbor_value_t *it, nanocbor_value_t *array);
  * @return              NANOCBOR_OK on success
  * @return              negative on error
  */
-int nanocbor_enter_map(nanocbor_value_t *it, nanocbor_value_t *map);
+int nanocbor_enter_map(const nanocbor_value_t *it, nanocbor_value_t *map);
 
 /**
  * @brief leave the container

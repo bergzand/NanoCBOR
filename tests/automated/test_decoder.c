@@ -43,6 +43,10 @@ static void test_decode_map(void)
         0xa1, 0x01, 0x02
     };
 
+    static const uint8_t complex_map_decode[] = {
+        0xa5, 0x01, 0x02, 0x03, 0x80, 0x04, 0x9F, 0xFF, 0x05, 0x9F, 0xff, 0x06, 0xf6
+    };
+
     nanocbor_value_t val;
     nanocbor_value_t cont;
 
@@ -75,6 +79,42 @@ static void test_decode_map(void)
     nanocbor_decoder_init(&val, map_one, sizeof(map_one));
     CU_ASSERT_EQUAL(nanocbor_skip(&val), NANOCBOR_OK);
     CU_ASSERT_EQUAL(nanocbor_at_end(&val), true);
+
+    nanocbor_value_t array;
+    /* Init decoder and start decoding */
+    nanocbor_decoder_init(&val, complex_map_decode, sizeof(complex_map_decode));
+    CU_ASSERT_EQUAL(nanocbor_enter_map(&val, &cont), NANOCBOR_OK);
+    CU_ASSERT(nanocbor_get_uint32(&cont, &tmp) > 0);
+    CU_ASSERT_EQUAL(tmp, 1);
+    CU_ASSERT(nanocbor_get_uint32(&cont, &tmp) > 0);
+    CU_ASSERT_EQUAL(tmp, 2);
+
+    CU_ASSERT(nanocbor_get_uint32(&cont, &tmp) > 0);
+    CU_ASSERT_EQUAL(tmp, 3);
+    CU_ASSERT_EQUAL(nanocbor_enter_array(&cont, &array), NANOCBOR_OK);
+    CU_ASSERT_EQUAL(nanocbor_at_end(&array), true);
+    nanocbor_leave_container(&cont, &array);
+    CU_ASSERT_EQUAL(nanocbor_at_end(&cont), false);
+
+    CU_ASSERT(nanocbor_get_uint32(&cont, &tmp) > 0);
+    CU_ASSERT_EQUAL(tmp, 4);
+    CU_ASSERT_EQUAL(nanocbor_enter_array(&cont, &array), NANOCBOR_OK);
+    CU_ASSERT_EQUAL(nanocbor_at_end(&array), true);
+    nanocbor_leave_container(&cont, &array);
+    CU_ASSERT_EQUAL(nanocbor_at_end(&cont), false);
+
+    CU_ASSERT(nanocbor_get_uint32(&cont, &tmp) > 0);
+    CU_ASSERT_EQUAL(tmp, 5);
+    CU_ASSERT_EQUAL(nanocbor_enter_array(&cont, &array), NANOCBOR_OK);
+    CU_ASSERT_EQUAL(nanocbor_at_end(&array), true);
+    nanocbor_leave_container(&cont, &array);
+    CU_ASSERT_EQUAL(nanocbor_at_end(&cont), false);
+
+    CU_ASSERT(nanocbor_get_uint32(&cont, &tmp) > 0);
+    CU_ASSERT_EQUAL(tmp, 6);
+    CU_ASSERT_EQUAL(nanocbor_at_end(&cont), false);
+    CU_ASSERT_EQUAL(nanocbor_get_null(&cont), NANOCBOR_OK);
+    CU_ASSERT_EQUAL(nanocbor_at_end(&cont), true);
 }
 
 static void test_tag(void)
