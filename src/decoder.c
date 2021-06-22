@@ -378,6 +378,7 @@ int nanocbor_skip_simple(nanocbor_value_t *it)
     return _skip_simple(it);
 }
 
+/* NOLINTNEXTLINE(misc-no-recursion): Recursion is limited by design */
 static int _skip_limited(nanocbor_value_t *it, uint8_t limit)
 {
     if (limit == 0) {
