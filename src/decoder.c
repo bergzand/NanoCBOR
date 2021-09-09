@@ -125,6 +125,7 @@ static int _get_uint64(const nanocbor_value_t *cvalue, uint32_t *value, uint8_t 
     memcpy(((uint8_t *)&tmp) + sizeof(uint64_t) - bytes, cvalue->cur + 1U, bytes);
     /* NOLINTNEXTLINE: user supplied function */
     tmp = NANOCBOR_BE64TOH_FUNC(tmp);
+    *value = 0;
     memcpy(value, &tmp, bytes);
 
     return (int)(1 + bytes);
