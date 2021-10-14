@@ -144,6 +144,39 @@ static void test_tag(void)
     CU_ASSERT_EQUAL(nanocbor_at_end(&cont), true);
 }
 
+static void test_double_tag(void)
+{
+    static const uint8_t arraytag[] =
+      {
+       0xD9, 0xD9, 0xF7,  // tag(55799)
+       0xDA, 0x52, 0x49, 0x4F, 0x54, // tag(1380536148) 'RIOT'
+       0x43,                         // bytes(3) -> 'C'
+       0x42,0x4F,0x52                // 'BOR'
+    };
+
+    nanocbor_value_t val;
+    const uint8_t *bytes= NULL;
+    size_t    bytes_len = 0;
+
+    uint32_t tmp = 0x12345678;
+
+    nanocbor_decoder_init(&val, arraytag, sizeof(arraytag));
+
+    CU_ASSERT_EQUAL(nanocbor_get_tag(&val, &tmp), NANOCBOR_OK);
+    CU_ASSERT_EQUAL(tmp, 55799);
+
+    CU_ASSERT_EQUAL(nanocbor_get_tag(&val, &tmp), NANOCBOR_OK);
+    CU_ASSERT_EQUAL(tmp, 1380536148);
+
+    CU_ASSERT_EQUAL(nanocbor_get_bstr(&val, &bytes, &bytes_len), NANOCBOR_OK);
+    CU_ASSERT_EQUAL(bytes_len, 3);
+    CU_ASSERT_EQUAL(bytes[0], 'B');
+    CU_ASSERT_EQUAL(bytes[1], 'O');
+    CU_ASSERT_EQUAL(bytes[2], 'R');
+
+    CU_ASSERT_EQUAL(nanocbor_at_end(&val), true);
+}
+
 static void test_decode_none(void)
 {
     nanocbor_value_t val;
@@ -209,6 +242,10 @@ const test_t tests_decoder[] = {
     {
         .f = test_tag,
         .n = "CBOR tag decode test",
+    },
+    {
+        .f = test_double_tag,
+        .n = "CBOR double tag decode test",
     },
     {
         .f = NULL,
