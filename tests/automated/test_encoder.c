@@ -4,6 +4,7 @@
 
 #include "test.h"
 #include "nanocbor/nanocbor.h"
+#include "nanocbor/stream_encoders/memory_buffer.h"
 #include <math.h>
 #include <float.h>
 #include <CUnit/CUnit.h>
@@ -21,8 +22,14 @@ static void print_bytestr(const uint8_t *bytes, size_t len)
 static void test_encode_float_specials(void)
 {
     uint8_t buf[64];
-    nanocbor_encoder_t enc;
-    nanocbor_encoder_init(&enc, buf, sizeof(buf));
+    memory_encoder stream;
+    MemoryStream_Init(&stream, buf, sizeof(buf));
+
+    FnStreamLength len_fn = (FnStreamLength)MemoryStream_Length;
+    FnStreamReserve res_fn = (FnStreamReserve)MemoryStream_Reserve;
+    FnStreamInsert ins_fn = (FnStreamInsert)MemoryStream_Insert;
+
+    nanocbor_encoder_t enc = NANOCBOR_ENCODER(&stream, len_fn, res_fn, ins_fn);
 
     nanocbor_fmt_array_indefinite(&enc);
     CU_ASSERT_EQUAL(nanocbor_fmt_float(&enc, NAN), 3);
@@ -41,8 +48,14 @@ static void test_encode_float_specials(void)
 static void test_encode_float_to_half(void)
 {
     uint8_t buf[64];
-    nanocbor_encoder_t enc;
-    nanocbor_encoder_init(&enc, buf, sizeof(buf));
+    memory_encoder stream;
+    MemoryStream_Init(&stream, buf, sizeof(buf));
+
+    FnStreamLength len_fn = (FnStreamLength)MemoryStream_Length;
+    FnStreamReserve res_fn = (FnStreamReserve)MemoryStream_Reserve;
+    FnStreamInsert ins_fn = (FnStreamInsert)MemoryStream_Insert;
+
+    nanocbor_encoder_t enc = NANOCBOR_ENCODER(&stream, len_fn, res_fn, ins_fn);
 
     nanocbor_fmt_array_indefinite(&enc);
     CU_ASSERT_EQUAL(nanocbor_fmt_float(&enc, 1.75), 3);
@@ -62,8 +75,14 @@ static void test_encode_float_to_half(void)
 static void test_encode_double_to_float(void)
 {
     uint8_t buf[128];
-    nanocbor_encoder_t enc;
-    nanocbor_encoder_init(&enc, buf, sizeof(buf));
+    memory_encoder stream;
+    MemoryStream_Init(&stream, buf, sizeof(buf));
+
+    FnStreamLength len_fn = (FnStreamLength)MemoryStream_Length;
+    FnStreamReserve res_fn = (FnStreamReserve)MemoryStream_Reserve;
+    FnStreamInsert ins_fn = (FnStreamInsert)MemoryStream_Insert;
+
+    nanocbor_encoder_t enc = NANOCBOR_ENCODER(&stream, len_fn, res_fn, ins_fn);
 
     nanocbor_fmt_array_indefinite(&enc);
     CU_ASSERT_EQUAL(nanocbor_fmt_double(&enc, 1.75), 3);

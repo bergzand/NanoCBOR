@@ -22,31 +22,17 @@
 
 #include NANOCBOR_BYTEORDER_HEADER
 
-void nanocbor_encoder_init(nanocbor_encoder_t *enc, uint8_t *buf, size_t len)
-{
-    enc->len = 0;
-    enc->cur = buf;
-    enc->end = buf + len;
-}
-
 size_t nanocbor_encoded_len(nanocbor_encoder_t *enc)
 {
-    return enc->len;
-}
-
-static int _fits(nanocbor_encoder_t *enc, size_t len)
-{
-    enc->len += len;
-    return ((size_t)(enc->end - enc->cur) >= len) ? (int)len :
-        NANOCBOR_ERR_END;
+    return enc->len(enc->stream);
 }
 
 static int _fmt_single(nanocbor_encoder_t *enc, uint8_t single)
 {
-    int res = _fits(enc, 1);
+    const int res = enc->reserve(enc->stream, 1);
 
     if (res == 1) {
-        *enc->cur++ = single;
+        enc->insert(enc->stream, &single, 1);
     }
     return res;
 }
@@ -86,16 +72,16 @@ static int _fmt_uint64(nanocbor_encoder_t *enc, uint64_t num, uint8_t type)
             extrabytes = sizeof(uint8_t);
         }
     }
-    int res = _fits(enc, extrabytes + 1);
+    int res = enc->reserve(enc->stream, extrabytes + 1);
     if (res > 0) {
-        *enc->cur++ = type;
+        enc->insert(enc->stream, &type, 1);
 
         /* NOLINTNEXTLINE: user supplied function */
         uint64_t benum = NANOCBOR_HTOBE64_FUNC(num);
 
-        memcpy(enc->cur, (uint8_t *)&benum + sizeof(benum) - extrabytes,
-               extrabytes);
-        enc->cur += extrabytes;
+        enc->insert(enc->stream,
+                (uint8_t *)&benum + sizeof(benum) - extrabytes,
+                extrabytes);
     }
     return res;
 }
@@ -132,11 +118,10 @@ int nanocbor_fmt_tstr(nanocbor_encoder_t *enc, size_t len)
 
 static int _put_bytes(nanocbor_encoder_t *enc, const uint8_t *str, size_t len)
 {
-    int res = _fits(enc, len);
+    const int res = enc->reserve(enc->stream, len);
 
     if (res >= 0) {
-        memcpy(enc->cur, str, len);
-        enc->cur += len;
+        enc->insert(enc->stream, str, len);
         return NANOCBOR_OK;
     }
     return res;
@@ -252,11 +237,16 @@ static bool _single_in_range(uint8_t exp, uint32_t num)
 
 static int _fmt_halffloat(nanocbor_encoder_t *enc, uint16_t half)
 {
-    int res = _fits(enc, sizeof(uint16_t) + 1);
+    int res = enc->reserve(enc->stream, sizeof(uint16_t) + 1);
     if (res > 0) {
-        *enc->cur++ = NANOCBOR_MASK_FLOAT | NANOCBOR_SIZE_SHORT;
-        *enc->cur++ = (half >> HALF_SIZE/2);
-        *enc->cur++ =  half & HALF_MASK_HALF;
+        const uint8_t id = NANOCBOR_MASK_FLOAT | NANOCBOR_SIZE_SHORT;
+        const uint8_t part1 = (half >> HALF_SIZE/2);
+        const uint8_t part2 = half & HALF_MASK_HALF;
+
+        enc->insert(enc->stream, &id, 1);
+        enc->insert(enc->stream, &part1, 1);
+        enc->insert(enc->stream, &part2, 1);
+
         res = sizeof(uint16_t) + 1;
     }
     return res;
@@ -307,13 +297,15 @@ int nanocbor_fmt_float(nanocbor_encoder_t *enc, float num)
         return _fmt_halffloat(enc, half);
     }
     /* normal float */
-    int res = _fits(enc, 1 + sizeof(float));
+    int res = enc->reserve(enc->stream, 1 + sizeof(float));
     if (res > 0) {
-        *enc->cur++ = NANOCBOR_MASK_FLOAT | NANOCBOR_SIZE_WORD;
+        const uint8_t id = NANOCBOR_MASK_FLOAT | NANOCBOR_SIZE_WORD;
+
         /* NOLINTNEXTLINE: user supplied function */
-        uint32_t bnum = NANOCBOR_HTOBE32_FUNC(*unum);
-        memcpy(enc->cur, &bnum, sizeof(bnum));
-        enc->cur += sizeof(float);
+        const uint32_t bnum = NANOCBOR_HTOBE32_FUNC(*unum);
+
+        enc->insert(enc->stream, &id, 1);
+        enc->insert(enc->stream, &bnum, sizeof(bnum));
     }
     return res;
 }
@@ -336,13 +328,15 @@ int nanocbor_fmt_double(nanocbor_encoder_t *enc, double num)
         float *fsingle = (float*)&single;
         return nanocbor_fmt_float(enc, *fsingle);
     }
-    int res = _fits(enc, 1 + sizeof(double));
+    int res = enc->reserve(enc->stream, 1 + sizeof(double));
     if (res > 0) {
-        *enc->cur++ = NANOCBOR_MASK_FLOAT | NANOCBOR_SIZE_LONG;
+        const uint8_t id = NANOCBOR_MASK_FLOAT | NANOCBOR_SIZE_LONG;
+
         /* NOLINTNEXTLINE: user supplied function */
         uint64_t bnum = NANOCBOR_HTOBE64_FUNC(*unum);
-        memcpy(enc->cur, &bnum, sizeof(bnum));
-        enc->cur += sizeof(double);
+
+        enc->insert(enc->stream, &id, 1);
+        enc->insert(enc->stream, &bnum, sizeof(bnum));
     }
     return res;
 }

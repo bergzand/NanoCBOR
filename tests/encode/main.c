@@ -9,6 +9,7 @@
 #include <unistd.h>
 
 #include "nanocbor/nanocbor.h"
+#include "nanocbor/stream_encoders/memory_buffer.h"
 
 static void _encode(nanocbor_encoder_t *enc)
 {
@@ -33,8 +34,15 @@ static void _encode(nanocbor_encoder_t *enc)
 
 int main(void)
 {
-    nanocbor_encoder_t enc;
-    nanocbor_encoder_init(&enc, NULL, 0);
+    memory_encoder stream;
+
+    MemoryStream_Init(&stream, NULL, 0);
+
+    FnStreamLength len_fn = (FnStreamLength)MemoryStream_Length;
+    FnStreamReserve res_fn = (FnStreamReserve)MemoryStream_Reserve;
+    FnStreamInsert ins_fn = (FnStreamInsert)MemoryStream_Insert;
+
+    nanocbor_encoder_t enc = NANOCBOR_ENCODER(&stream, len_fn, res_fn, ins_fn);
 
     _encode(&enc);
 
@@ -45,7 +53,8 @@ int main(void)
         return -1;
     }
 
-    nanocbor_encoder_init(&enc, buf, required);
+    MemoryStream_Init(&stream, buf, required);
+
     _encode(&enc);
 
     //printf("Bytes: %u\n", (unsigned)nanocbor_encoded_len(&enc));

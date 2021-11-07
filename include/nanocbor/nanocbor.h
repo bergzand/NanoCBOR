@@ -151,13 +151,51 @@ typedef struct nanocbor_value {
 } nanocbor_value_t;
 
 /**
+ * @name stream interface definition
+ * @{
+ */
+
+/**
+ * @brief Length in bytes of supplied cbor data.
+ *  Incremented separate from the buffer check.
+ *
+ * @param[in]   stream  the private data of the stream implementation
+ *
+ * @return            length in bytes of supplied cbor data.
+ */
+typedef size_t (*FnStreamLength)(void *stream);
+
+/**
+ * @brief Reserve bytes within the stream.
+ *
+ * @param[in]   stream  the private data of the stream implementation
+ * @param[in]   len   the number of bytes to reserve
+ *
+ * @return   len input is provided back on success,
+ *           and NANOCBOR_ERR_END if not able to reserve
+ */
+typedef int (*FnStreamReserve)(void *stream,  size_t len);
+
+/**
+ * @brief Copy the given cbor data into the stream.
+ *
+ * @param[in]   stream  the private data of the stream implementation
+ * @param[in]   src   pointer to the data to copy
+ * @param[in]   n     the number of bytes to copy
+ */
+typedef void (*FnStreamInsert)(void *stream, const void *src, size_t n);
+
+/** @} */
+
+/**
  * @brief encoder context
  */
 typedef struct nanocbor_encoder {
-    uint8_t *cur;   /**< Current position in the buffer */
-    uint8_t *end;   /**< end of the buffer                      */
-    size_t len;     /**< Length in bytes of supplied cbor data. Incremented
-                      *  separate from the buffer check  */
+    FnStreamLength len;  /**< Length in bytes of supplied cbor data. */
+    FnStreamReserve reserve;  /**< Allocate/ensure the next 'len' bytes can fit */
+    FnStreamInsert insert;  /**< Insert cbor data into the stream */
+    void *stream;  /**< The private data to give back to stream functions */
+
 } nanocbor_encoder_t;
 
 /**
@@ -527,24 +565,21 @@ static inline bool nanocbor_in_container(const nanocbor_value_t *container)
  */
 
 /**
- * @brief Initializes an encoder context with a buffer.
- *
- * It is safe to pass `NULL` to @p buf with @p len is `0` to determine the size
- * of a CBOR structure.
- *
- * @param[in]   enc     Encoder context
- * @param[in]   buf     Buffer to write into
- * @param[in]   len     length of the buffer
+ * @brief Declare a nanocbor_encoder_t
  */
-void nanocbor_encoder_init(nanocbor_encoder_t *enc,
-                           uint8_t *buf, size_t len);
+#define NANOCBOR_ENCODER(priv_data, lenfn, resfn, insfn)    \
+    (const nanocbor_encoder_t) {                              \
+        .len = lenfn,                                         \
+        .reserve = resfn,                                     \
+        .insert = insfn,                                      \
+        .stream = priv_data,                                  \
+    }
 
 /**
  * @brief Retrieve the encoded length of the CBOR structure
  *
- * This function doesn't take the length of the buffer supplied to
- * @ref nanocbor_encoder_init into account, it only returns the number of bytes
- * the current CBOR structure would take up.
+ * This function doesn't take the length of the stream into account,
+ * it only returns the number of bytes the current CBOR structure would take up.
  *
  * @param[in]   enc     Encoder context
  *
