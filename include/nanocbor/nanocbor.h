@@ -101,6 +101,7 @@ extern "C" {
 #define NANOCBOR_TAG_BIGNUMS_N      (0x3) /**< Negative bignum */
 #define NANOCBOR_TAG_DEC_FRAC       (0x4) /**< Decimal Fraction */
 #define NANOCBOR_TAG_BIGFLOATS      (0x5) /**< Bigfloat */
+#define NANOCBOR_TAG_OBJECT         (27)  /**< Generic Object */
 /** @} */
 
 /**
@@ -584,6 +585,17 @@ int nanocbor_fmt_uint(nanocbor_encoder_t *enc, uint64_t num);
  * @return              Negative on error
  */
 int nanocbor_fmt_tag(nanocbor_encoder_t *enc, uint64_t num);
+
+/**
+ * @brief Write a CBOR Object tag (27) to the buffer
+ *
+ * @param[in]   enc     Encoder context
+ * @param[in]   num_params Number of parameters needed to construct this object.
+ *
+ * @return              number of bytes written
+ * @return              Negative on error
+ */
+int nanocbor_fmt_object(nanocbor_encoder_t *enc, size_t num_params);
 
 /**
  * @brief Write a signed integer of at most sizeof int32_t into the buffer
