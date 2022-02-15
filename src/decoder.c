@@ -305,6 +305,21 @@ int nanocbor_get_bool(nanocbor_value_t *cvalue, bool *value)
     return res;
 }
 
+int nanocbor_get_undefined(nanocbor_value_t *cvalue)
+{
+    return _value_match_exact(cvalue, NANOCBOR_MASK_FLOAT | NANOCBOR_SIMPLE_UNDEF);
+}
+
+int nanocbor_get_simple(nanocbor_value_t *cvalue, uint8_t *value)
+{
+    int res = _get_and_advance_uint8(cvalue, value,
+                                     NANOCBOR_TYPE_FLOAT);
+    if (res == NANOCBOR_ERR_OVERFLOW) {
+        res = NANOCBOR_ERR_INVALID_TYPE;
+    }
+    return res;
+}
+
 static int _enter_container(const nanocbor_value_t *it, nanocbor_value_t *container,
                      uint8_t type)
 {
