@@ -425,6 +425,7 @@ int nanocbor_get_tag(nanocbor_value_t *cvalue, uint32_t *tag);
  * @param[in]   cvalue  CBOR value to decode from
  *
  * @return              NANOCBOR_OK on success
+ * @return              negative on error
  */
 int nanocbor_get_null(nanocbor_value_t *cvalue);
 
@@ -438,6 +439,30 @@ int nanocbor_get_null(nanocbor_value_t *cvalue);
  * @return              negative on error
  */
 int nanocbor_get_bool(nanocbor_value_t *cvalue, bool *value);
+
+/**
+ * @brief Retrieve a simple value of undefined from the stream
+ *
+ * @param[in]   cvalue  CBOR value to decode from
+ *
+ * @return              NANOCBOR_OK on success
+ * @return              negative on error
+ */
+int nanocbor_get_undefined(nanocbor_value_t *cvalue);
+
+/**
+ * @brief Retrieve a simple value as integer from the stream
+ *
+ * This function returns the simple value as uint8_t value and skips decoding
+ * the meaning of the values. For example, a CBOR true is returned as value 21.
+ *
+ * @param[in]   cvalue  CBOR value to decode from
+ * @param[out]  value   Simple value retrieved from the stream
+ *
+ * @return              NANOCBOR_OK on success
+ * @return              negative on error
+ */
+int nanocbor_get_simple(nanocbor_value_t *cvalue, uint8_t *value);
 
 /**
  * @brief Skip to the next value in the CBOR stream
