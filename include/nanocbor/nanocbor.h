@@ -260,6 +260,21 @@ int nanocbor_get_uint16(nanocbor_value_t *cvalue, uint16_t *value);
 int nanocbor_get_uint32(nanocbor_value_t *cvalue, uint32_t *value);
 
 /**
+ * @brief Retrieve a positive integer as uint64_t from the stream
+ *
+ * If the value at `cvalue` is greater than 64 bit, error is returned.
+ *
+ * The resulting @p value is undefined if the result is an error condition
+ *
+ * @param[in]   cvalue  CBOR value to decode from
+ * @param[out]  value   returned positive integer
+ *
+ * @return              number of bytes read
+ * @return              negative on error
+ */
+int nanocbor_get_uint64(nanocbor_value_t *cvalue, uint64_t *value);
+
+/**
  * @brief Retrieve a signed integer as int8_t from the stream
  *
  * If the value at `cvalue` is greater than 8 bit (< -128 or > 127),
@@ -305,6 +320,21 @@ int nanocbor_get_int16(nanocbor_value_t *cvalue, int16_t *value);
  * @return              negative on error
  */
 int nanocbor_get_int32(nanocbor_value_t *cvalue, int32_t *value);
+
+/**
+ * @brief Retrieve a signed integer as int64_t from the stream
+ *
+ * If the value at `cvalue` is greater than 64 bit, error is returned.
+ *
+ * The resulting @p value is undefined if the result is an error condition
+ *
+ * @param[in]   cvalue  CBOR value to decode from
+ * @param[out]  value   returned signed integer
+ *
+ * @return              number of bytes read
+ * @return              negative on error
+ */
+int nanocbor_get_int64(nanocbor_value_t *cvalue, int64_t *value);
 
 /**
  * @brief Retrieve a decimal fraction from the stream as a int32_t mantisa and

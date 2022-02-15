@@ -93,7 +93,7 @@ int nanocbor_get_type(const nanocbor_value_t *value)
     return (_get_type(value) >> NANOCBOR_TYPE_OFFSET);
 }
 
-static int _get_uint64(const nanocbor_value_t *cvalue, uint32_t *value, uint8_t max, int type)
+static int _get_uint64(const nanocbor_value_t *cvalue, uint64_t *value, uint8_t max, int type)
 {
     int ctype = nanocbor_get_type(cvalue);
 
@@ -134,7 +134,7 @@ static int _get_uint64(const nanocbor_value_t *cvalue, uint32_t *value, uint8_t 
 static int _get_and_advance_uint8(nanocbor_value_t *cvalue, uint8_t *value,
                                    int type)
 {
-    uint32_t tmp = 0;
+    uint64_t tmp = 0;
     int res = _get_uint64(cvalue, &tmp, NANOCBOR_SIZE_BYTE,
                           type);
     *value = (uint8_t)tmp;
@@ -145,7 +145,7 @@ static int _get_and_advance_uint8(nanocbor_value_t *cvalue, uint8_t *value,
 static int _get_and_advance_uint16(nanocbor_value_t *cvalue, uint16_t *value,
                                    int type)
 {
-    uint32_t tmp = 0;
+    uint64_t tmp = 0;
     int res = _get_uint64(cvalue, &tmp, NANOCBOR_SIZE_SHORT,
                           type);
     *value = (uint16_t)tmp;
@@ -156,8 +156,19 @@ static int _get_and_advance_uint16(nanocbor_value_t *cvalue, uint16_t *value,
 static int _get_and_advance_uint32(nanocbor_value_t *cvalue, uint32_t *value,
                                    int type)
 {
-    uint32_t tmp = 0;
+    uint64_t tmp = 0;
     int res = _get_uint64(cvalue, &tmp, NANOCBOR_SIZE_WORD,
+                          type);
+    *value = tmp;
+
+    return _advance_if(cvalue, res);
+}
+
+static int _get_and_advance_uint64(nanocbor_value_t *cvalue, uint64_t *value,
+                                   int type)
+{
+    uint64_t tmp = 0;
+    int res = _get_uint64(cvalue, &tmp, NANOCBOR_SIZE_LONG,
                           type);
     *value = tmp;
 
@@ -179,8 +190,13 @@ int nanocbor_get_uint32(nanocbor_value_t *cvalue, uint32_t *value)
     return _get_and_advance_uint32(cvalue, value, NANOCBOR_TYPE_UINT);
 }
 
-static int _get_and_advance_int32(nanocbor_value_t *cvalue, int32_t *value, uint8_t max,
-                                  uint32_t bound)
+int nanocbor_get_uint64(nanocbor_value_t *cvalue, uint64_t *value)
+{
+    return _get_and_advance_uint64(cvalue, value, NANOCBOR_TYPE_UINT);
+}
+
+static int _get_and_advance_int64(nanocbor_value_t *cvalue, int64_t *value, uint8_t max,
+                                  uint64_t bound)
 {
     int type = nanocbor_get_type(cvalue);
     if (type < 0) {
@@ -188,16 +204,16 @@ static int _get_and_advance_int32(nanocbor_value_t *cvalue, int32_t *value, uint
     }
     int res = NANOCBOR_ERR_INVALID_TYPE;
     if (type == NANOCBOR_TYPE_NINT || type == NANOCBOR_TYPE_UINT) {
-        uint32_t intermediate = 0;
+        uint64_t intermediate = 0;
         res = _get_uint64(cvalue, &intermediate, max, type);
         if (intermediate > bound) {
             res = NANOCBOR_ERR_OVERFLOW;
         }
         if (type == NANOCBOR_TYPE_NINT) {
-            *value = (-(int32_t)intermediate) - 1;
+            *value = (-(int64_t)intermediate) - 1;
         }
         else {
-            *value = (int32_t)intermediate;
+            *value = (int64_t)intermediate;
         }
     }
     return _advance_if(cvalue, res);
@@ -205,8 +221,8 @@ static int _get_and_advance_int32(nanocbor_value_t *cvalue, int32_t *value, uint
 
 int nanocbor_get_int8(nanocbor_value_t *cvalue, int8_t *value)
 {
-    int32_t tmp = 0;
-    int res = _get_and_advance_int32(cvalue, &tmp, NANOCBOR_SIZE_BYTE, INT8_MAX);
+    int64_t tmp = 0;
+    int res = _get_and_advance_int64(cvalue, &tmp, NANOCBOR_SIZE_BYTE, INT8_MAX);
 
     *value = (int8_t)tmp;
 
@@ -215,8 +231,8 @@ int nanocbor_get_int8(nanocbor_value_t *cvalue, int8_t *value)
 
 int nanocbor_get_int16(nanocbor_value_t *cvalue, int16_t *value)
 {
-    int32_t tmp = 0;
-    int res = _get_and_advance_int32(cvalue, &tmp, NANOCBOR_SIZE_SHORT, INT16_MAX);
+    int64_t tmp = 0;
+    int res = _get_and_advance_int64(cvalue, &tmp, NANOCBOR_SIZE_SHORT, INT16_MAX);
 
     *value = (int16_t)tmp;
 
@@ -225,17 +241,29 @@ int nanocbor_get_int16(nanocbor_value_t *cvalue, int16_t *value)
 
 int nanocbor_get_int32(nanocbor_value_t *cvalue, int32_t *value)
 {
-    return _get_and_advance_int32(cvalue, value, NANOCBOR_SIZE_WORD, INT32_MAX);
+    int64_t tmp = 0;
+    int res = _get_and_advance_int64(cvalue, &tmp, NANOCBOR_SIZE_WORD, INT32_MAX);
+
+    *value = (int32_t)tmp;
+
+    return res;
+}
+
+int nanocbor_get_int64(nanocbor_value_t *cvalue, int64_t *value)
+{
+    return _get_and_advance_int64(cvalue, value, NANOCBOR_SIZE_LONG, INT64_MAX);
 }
 
 int nanocbor_get_tag(nanocbor_value_t *cvalue, uint32_t *tag)
 {
-    int res = _get_uint64(cvalue, tag, NANOCBOR_SIZE_WORD, NANOCBOR_TYPE_TAG);
+    uint64_t tmp = 0;
+    int res = _get_uint64(cvalue, &tmp, NANOCBOR_SIZE_WORD, NANOCBOR_TYPE_TAG);
 
     if (res >= 0) {
         cvalue->cur += res;
         res = NANOCBOR_OK;
     }
+    *tag = (uint32_t)tmp;
 
     return res;
 }
@@ -266,7 +294,7 @@ int nanocbor_get_decimal_frac(nanocbor_value_t *cvalue, int32_t *e, int32_t *m)
 static int _get_str(nanocbor_value_t *cvalue, const uint8_t **buf, size_t *len, uint8_t type)
 {
     *len = 0;
-    int res = _get_uint64(cvalue, (uint32_t*)len, NANOCBOR_SIZE_SIZET, type);
+    int res = _get_uint64(cvalue, (uint64_t*)len, NANOCBOR_SIZE_SIZET, type);
 
     if (cvalue->end - cvalue->cur < 0 || (size_t)(cvalue->end - cvalue->cur) < *len) {
         return NANOCBOR_ERR_END;
@@ -336,7 +364,7 @@ static int _enter_container(const nanocbor_value_t *it, nanocbor_value_t *contai
         return NANOCBOR_OK;
     }
 
-    int res = _get_uint64(it, &container->remaining,
+    int res = _get_uint64(it, (uint64_t*)&container->remaining,
                           NANOCBOR_SIZE_WORD, type);
     if (res < 0) {
         return res;
@@ -378,7 +406,7 @@ void nanocbor_leave_container(nanocbor_value_t *it, nanocbor_value_t *container)
 static int _skip_simple(nanocbor_value_t *it)
 {
     uint64_t tmp = 0;
-    int res = _get_uint64(it, (uint32_t*)&tmp, NANOCBOR_SIZE_LONG,
+    int res = _get_uint64(it, &tmp, NANOCBOR_SIZE_LONG,
                           nanocbor_get_type(it));
     return _advance_if(it, res);
 }
