@@ -262,6 +262,7 @@ static int _fmt_halffloat(nanocbor_encoder_t *enc, uint16_t half)
     return res;
 }
 
+#if __SIZEOF_DOUBLE__ != __SIZEOF_FLOAT__
 /* Check special cases for single precision floats */
 static bool _double_is_inf_nan(uint16_t exp)
 {
@@ -284,6 +285,7 @@ static bool _double_in_range(uint16_t exp, uint64_t num)
     }
     return false;
 }
+#endif
 
 int nanocbor_fmt_float(nanocbor_encoder_t *enc, float num)
 {
@@ -320,6 +322,9 @@ int nanocbor_fmt_float(nanocbor_encoder_t *enc, float num)
 
 int nanocbor_fmt_double(nanocbor_encoder_t *enc, double num)
 {
+#if __SIZEOF_DOUBLE__ == __SIZEOF_FLOAT__
+    return nanocbor_fmt_float(enc, num);
+#else
     uint64_t *unum = (uint64_t *)&num;
     uint16_t exp = (*unum >> DOUBLE_EXP_POS) & DOUBLE_EXP_MASK;
     if (_double_is_inf_nan(exp) ||
@@ -345,6 +350,7 @@ int nanocbor_fmt_double(nanocbor_encoder_t *enc, double num)
         enc->cur += sizeof(double);
     }
     return res;
+#endif
 }
 
 int nanocbor_fmt_decimal_frac(nanocbor_encoder_t *enc, int32_t e, int32_t m)
