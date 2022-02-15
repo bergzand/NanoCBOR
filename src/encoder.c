@@ -110,6 +110,24 @@ int nanocbor_fmt_tag(nanocbor_encoder_t *enc, uint64_t num)
     return _fmt_uint64(enc, num, NANOCBOR_MASK_TAG);
 }
 
+int nanocbor_fmt_object(nanocbor_encoder_t *enc, size_t num_params)
+{
+    int array_res = 0;
+    int tag_res = nanocbor_fmt_tag(enc, NANOCBOR_TAG_OBJECT);
+
+    if (tag_res < 0) {
+        return tag_res;
+    }
+
+    array_res = nanocbor_fmt_array(enc, num_params);
+
+    if (array_res < 0) {
+        return array_res;
+    }
+
+    return tag_res + array_res;
+}
+
 int nanocbor_fmt_int(nanocbor_encoder_t *enc, int64_t num)
 {
     if (num < 0) {
