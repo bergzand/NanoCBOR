@@ -348,6 +348,109 @@ int nanocbor_get_simple(nanocbor_value_t *cvalue, uint8_t *value)
     return res;
 }
 
+/* float bit mask related defines */
+#define FLOAT_EXP_OFFSET                                   (127U)
+#define FLOAT_SIZE                                          (32U)
+#define FLOAT_EXP_POS                                       (23U)
+#define FLOAT_EXP_MASK                          ((uint32_t)0xFFU)
+#define FLOAT_SIGN_POS                                      (31U)
+#define FLOAT_FRAC_MASK                               (0x7FFFFFU)
+#define FLOAT_SIGN_MASK          ((uint32_t)1U << FLOAT_SIGN_POS)
+#define FLOAT_EXP_IS_NAN                                  (0xFFU)
+#define FLOAT_IS_ZERO                        (~(FLOAT_SIGN_MASK))
+/* Part where a float to halffloat leads to precision loss */
+#define FLOAT_HALF_LOSS                                 (0x1FFFU)
+
+/* halffloat bit mask related defines */
+#define HALF_EXP_OFFSET                                     (15U)
+#define HALF_SIZE                                           (16U)
+#define HALF_EXP_POS                                        (10U)
+#define HALF_EXP_MASK                                     (0x1FU)
+#define HALF_SIGN_POS                                       (15U)
+#define HALF_FRAC_MASK                                   (0x3FFU)
+#define HALF_SIGN_MASK          ((uint16_t)(1U << HALF_SIGN_POS))
+#define HALF_MASK_HALF                                    (0xFFU)
+
+#define HALF_FLOAT_EXP_DIFF       ((uint16_t)(FLOAT_EXP_OFFSET - HALF_EXP_OFFSET))
+#define HALF_FLOAT_EXP_POS_DIFF   ((uint16_t)(FLOAT_EXP_POS - HALF_EXP_POS))
+#define HALF_EXP_TO_FLOAT         (HALF_FLOAT_EXP_DIFF << HALF_EXP_POS)
+
+static int _decode_half_float(nanocbor_value_t *cvalue, float *value)
+{
+    uint64_t tmp = 0;
+    int res = _get_uint64(cvalue, &tmp, NANOCBOR_SIZE_SHORT, NANOCBOR_TYPE_FLOAT);
+    if (res == 1 + sizeof(uint16_t)) {
+        uint32_t *ifloat = (uint32_t*)value;
+        *ifloat = (tmp & HALF_SIGN_MASK) << (FLOAT_SIGN_POS - HALF_SIGN_POS);
+
+        uint32_t significant = tmp & HALF_FRAC_MASK;
+        uint32_t exponent = tmp & (HALF_EXP_MASK << HALF_EXP_POS);
+
+        static const uint32_t magic = (FLOAT_EXP_OFFSET - 1) << FLOAT_EXP_POS;
+        static const float *fmagic = (float*)&magic;
+
+        if (exponent == 0) {
+            *ifloat = magic + significant;
+            *value -= *fmagic;
+        }
+        else {
+            if (exponent == (HALF_EXP_MASK << HALF_EXP_POS)) {
+                /* Set exponent to max value */
+                exponent = ((FLOAT_EXP_MASK - HALF_FLOAT_EXP_DIFF) << HALF_EXP_POS);
+            }
+            *ifloat |=
+                ((exponent + HALF_EXP_TO_FLOAT) << HALF_FLOAT_EXP_POS_DIFF) |
+                (significant << HALF_FLOAT_EXP_POS_DIFF);
+        }
+        return _advance_if(cvalue, res);
+    }
+    return res > 0 ? NANOCBOR_ERR_INVALID_TYPE : res;
+}
+
+static int _decode_float(nanocbor_value_t *cvalue, float *value)
+{
+    uint64_t tmp = 0;
+    int res = _get_uint64(cvalue, &tmp, NANOCBOR_SIZE_WORD, NANOCBOR_TYPE_FLOAT);
+    if (res == 1 + sizeof(uint32_t)) {
+        uint32_t ifloat = tmp;
+        memcpy(value, &ifloat, sizeof(uint32_t));
+        return _advance_if(cvalue, res);
+    }
+    return res > 0 ? NANOCBOR_ERR_INVALID_TYPE : res;
+}
+
+static int _decode_double(nanocbor_value_t *cvalue, double *value)
+{
+    uint64_t tmp = 0;
+    int res = _get_uint64(cvalue, &tmp, NANOCBOR_SIZE_LONG, NANOCBOR_TYPE_FLOAT);
+    if (res == 1 + sizeof(uint64_t)) {
+        uint64_t ifloat = tmp;
+        memcpy(value, &ifloat, sizeof(uint64_t));
+        return _advance_if(cvalue, res);
+    }
+    return res > 0 ? NANOCBOR_ERR_INVALID_TYPE : res;
+}
+
+int nanocbor_get_float(nanocbor_value_t *cvalue, float *value)
+{
+    int res = _decode_half_float(cvalue, value);
+    if (res < 0) {
+        res = _decode_float(cvalue, value);
+    }
+    return res;
+}
+
+int nanocbor_get_double(nanocbor_value_t *cvalue, double *value)
+{
+    float tmp = 0;
+    int res = nanocbor_get_float(cvalue, &tmp);
+    if (res >= NANOCBOR_OK) {
+        *value = tmp;
+        return NANOCBOR_OK;
+    }
+    return _decode_double(cvalue, value);
+}
+
 static int _enter_container(const nanocbor_value_t *it, nanocbor_value_t *container,
                      uint8_t type)
 {
