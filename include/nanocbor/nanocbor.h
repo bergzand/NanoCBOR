@@ -506,7 +506,7 @@ int nanocbor_get_simple(nanocbor_value_t *cvalue, uint8_t *value);
  * @param[in]   cvalue  CBOR value to decode from
  * @param[out]  value   Simple value retrieved from the stream
  *
- * @return              NANOCBOR_OK on success
+ * @return              number of bytes read on success
  * @return              negative on error
  */
 int nanocbor_get_float(nanocbor_value_t *cvalue, float *value);
@@ -523,7 +523,7 @@ int nanocbor_get_float(nanocbor_value_t *cvalue, float *value);
  * @param[in]   cvalue  CBOR value to decode from
  * @param[out]  value   Simple value retrieved from the stream
  *
- * @return              NANOCBOR_OK on success
+ * @return              number of bytes read on success
  * @return              negative on error
  */
 int nanocbor_get_double(nanocbor_value_t *cvalue, double *value);
