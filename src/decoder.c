@@ -446,7 +446,7 @@ int nanocbor_get_double(nanocbor_value_t *cvalue, double *value)
     int res = nanocbor_get_float(cvalue, &tmp);
     if (res >= NANOCBOR_OK) {
         *value = tmp;
-        return NANOCBOR_OK;
+        return res;
     }
     return _decode_double(cvalue, value);
 }
