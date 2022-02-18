@@ -19,8 +19,8 @@ build_task:
         CC: clang
       container:
         matrix:
-          image: silkeh/clang:7
-          image: silkeh/clang:8
+          image: silkeh/clang:11
+          image: silkeh/clang:12
       install_libgcc_script:
         - apt install -y libgcc-9-dev
     - name: gcc
@@ -28,8 +28,8 @@ build_task:
         CC: gcc
       container:
         matrix:
-          image: gcc:8
-          image: gcc:9
+          image: gcc:10
+          image: gcc:11
   test_script: 
     - make -C tests/automated clean test
     - make bin/nanocbor.so
