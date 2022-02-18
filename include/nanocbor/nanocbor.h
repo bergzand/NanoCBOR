@@ -495,6 +495,40 @@ int nanocbor_get_undefined(nanocbor_value_t *cvalue);
 int nanocbor_get_simple(nanocbor_value_t *cvalue, uint8_t *value);
 
 /**
+ * @brief Retrieve a float value from the stream.
+ *
+ * This function automatically converts CBOR half floats into 32 bit floating
+ * points.
+ *
+ * @note This function assumes the host uses ieee754 to represent floating point
+ * numbers
+ *
+ * @param[in]   cvalue  CBOR value to decode from
+ * @param[out]  value   Simple value retrieved from the stream
+ *
+ * @return              NANOCBOR_OK on success
+ * @return              negative on error
+ */
+int nanocbor_get_float(nanocbor_value_t *cvalue, float *value);
+
+/**
+ * @brief Retrieve a double-sized floating point value from the stream.
+ *
+ * This function automatically converts CBOR half floats and 32 bit floats into
+ * into 64 bit floating points.
+ *
+ * @note This function assumes the host uses ieee754 to represent floating point
+ * numbers
+ *
+ * @param[in]   cvalue  CBOR value to decode from
+ * @param[out]  value   Simple value retrieved from the stream
+ *
+ * @return              NANOCBOR_OK on success
+ * @return              negative on error
+ */
+int nanocbor_get_double(nanocbor_value_t *cvalue, double *value);
+
+/**
  * @brief Skip to the next value in the CBOR stream
  *
  * This function is able to skip over nested structures in the CBOR stream
