@@ -33,6 +33,7 @@ build_task:
   test_script: 
     - make -C tests/automated clean test
     - make bin/nanocbor.so
+    - make -C examples/pretty-printer pretty-printer
 
 
 arm_task:
