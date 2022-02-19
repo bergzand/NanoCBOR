@@ -13,20 +13,17 @@
 #include "nanocbor/nanocbor.h"
 
 static const struct argp_option cmdline_options[] = {
-    {"verbose", 'v', 0, OPTION_ARG_OPTIONAL, "Produce verbose output", 0},
     {"pretty", 'p', 0, OPTION_ARG_OPTIONAL, "Produce pretty printing with newlines and indents", 0},
     {"input", 'f', "input", 0, "Input file, - for stdin", 0},
     {0},
 };
 
-
 struct arguments {
-    bool verbose;
     bool pretty;
     char *input;
 };
 
-static struct arguments args = {false, false, NULL};
+static struct arguments args = {false, NULL};
 
 char buffer[4096];
 
@@ -34,9 +31,6 @@ static error_t _parse_opts(int key, char *arg, struct argp_state *state)
 {
     struct arguments *arguments = state->input;
     switch(key) {
-        case 'v':
-            arguments->verbose = true;
-            break;
         case 'p':
             arguments->pretty = true;
             break;
