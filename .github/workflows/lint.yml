@@ -1,0 +1,11 @@
+name: Lint
+on: [push]
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    container: silkeh/clang:latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Lint
+        run: make clang-tidy
+
