@@ -6,12 +6,16 @@ jobs:
       matrix:
         include:
           - container: gcc:10
+            artifact: gcc-10
             cc: gcc
           - container: gcc:11
+            artifact: gcc-11
             cc: gcc
           - container: silkeh/clang:11
+            artifact: clang-11
             cc: clang
           - container: silkeh/clang:12
+            artifact: clang-12
             cc: clang
     runs-on: ubuntu-latest
     env:
@@ -20,11 +24,15 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Install prerequisites"
-        run:  apt update && apt install -y libcunit1-dev
+        run:  apt update && apt install -y pkg-config libcunit1-dev meson ninja-build
+      - name: Configure
+        run: meson build
+      - name: compile
+        run: ninja -C build
       - name: Run tests
-        run: make -C tests/automated clean test
-      - name: Build library
-        run: make bin/nanocbor.so
-      - name: Build example
-        run: make -C examples/pretty-printer pretty-printer
-
+        run: ninja -C build test
+      - name: Upload test log
+        uses: actions/upload-artifact@v2
+        with:
+          name: testlog-${{ matrix.artifact }}.txt
+          path: build/meson-logs/testlog.txt

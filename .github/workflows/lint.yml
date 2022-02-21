@@ -1,11 +1,17 @@
-name: Lint
+name: Format and Tidy
 on: [push]
 jobs:
   lint:
+    strategy:
+      matrix:
+        check: [clang-tidy, clang-format]
     runs-on: ubuntu-latest
     container: silkeh/clang:latest
     steps:
       - uses: actions/checkout@v2
-      - name: Lint
-        run: make clang-tidy
-
+      - name: Install prerequisites"
+        run:  apt update && apt install -y meson ninja-build
+      - name: Configure
+        run: meson build -Denable-tests=false -Denable-examples=false
+      - name: ${{ matrix.check }}
+        run: ninja -C build ${{ matrix.check }}
