@@ -6,6 +6,8 @@
 #include "test.h"
 #include <CUnit/CUnit.h>
 
+/* NOLINTBEGIN(cppcoreguidelines-avoid-magic-numbers) */
+
 static void test_decode_indefinite(void)
 {
     /* Test vector, 3 integers in an indefinite array */
@@ -172,7 +174,7 @@ static void test_decode_none(void)
 {
     nanocbor_value_t val;
     nanocbor_value_t cont;
-    uint64_t tmp;
+    uint64_t tmp = 0;
     nanocbor_decoder_init(&val, NULL, 0);
 
     CU_ASSERT_EQUAL(nanocbor_get_type(&val), NANOCBOR_ERR_END);
@@ -207,12 +209,12 @@ static void test_decode_basic(void)
     CU_ASSERT_EQUAL(5, intval);
 
     const uint8_t decimal_frac[] = { 0xC4, 0x82, 0x21, 0x19, 0x6a, 0xb3 };
-    int32_t m;
-    int32_t e;
+    int32_t mantissa = 0;
+    int32_t exponent = 0;
     nanocbor_decoder_init(&decoder, decimal_frac, sizeof(decimal_frac));
-    CU_ASSERT_EQUAL(nanocbor_get_decimal_frac(&decoder, &e, &m), 0);
-    CU_ASSERT_EQUAL(e, -2);
-    CU_ASSERT_EQUAL(m, 27315);
+    CU_ASSERT_EQUAL(nanocbor_get_decimal_frac(&decoder, &exponent, &mantissa), 0);
+    CU_ASSERT_EQUAL(exponent, -2);
+    CU_ASSERT_EQUAL(mantissa, 27315);
 }
 
 const test_t tests_decoder[] = {
@@ -245,3 +247,5 @@ const test_t tests_decoder[] = {
         .n = NULL,
     },
 };
+
+/* NOLINTEND(cppcoreguidelines-avoid-magic-numbers) */
