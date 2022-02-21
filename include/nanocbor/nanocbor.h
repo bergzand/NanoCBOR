@@ -38,69 +38,69 @@
 extern "C" {
 #endif
 
-#define NANOCBOR_TYPE_OFFSET    (5U)   /**< Bit shift for CBOR major types */
-#define NANOCBOR_TYPE_MASK      0xE0U  /**< Mask for CBOR major types */
-#define NANOCBOR_VALUE_MASK     0x1FU  /**< Mask for CBOR values */
+#define NANOCBOR_TYPE_OFFSET (5U) /**< Bit shift for CBOR major types */
+#define NANOCBOR_TYPE_MASK 0xE0U /**< Mask for CBOR major types */
+#define NANOCBOR_VALUE_MASK 0x1FU /**< Mask for CBOR values */
 
 /**
  * @name CBOR type numbers
  * @{
  */
-#define NANOCBOR_TYPE_UINT      (0x00U) /**< positive integer type */
-#define NANOCBOR_TYPE_NINT      (0x01U) /**< negative integer type */
-#define NANOCBOR_TYPE_BSTR      (0x02U) /**< byte string type */
-#define NANOCBOR_TYPE_TSTR      (0x03U) /**< text string type */
-#define NANOCBOR_TYPE_ARR       (0x04U) /**< array type */
-#define NANOCBOR_TYPE_MAP       (0x05U) /**< map type */
-#define NANOCBOR_TYPE_TAG       (0x06U) /**< tag type */
-#define NANOCBOR_TYPE_FLOAT     (0x07U) /**< float type */
+#define NANOCBOR_TYPE_UINT (0x00U) /**< positive integer type */
+#define NANOCBOR_TYPE_NINT (0x01U) /**< negative integer type */
+#define NANOCBOR_TYPE_BSTR (0x02U) /**< byte string type */
+#define NANOCBOR_TYPE_TSTR (0x03U) /**< text string type */
+#define NANOCBOR_TYPE_ARR (0x04U) /**< array type */
+#define NANOCBOR_TYPE_MAP (0x05U) /**< map type */
+#define NANOCBOR_TYPE_TAG (0x06U) /**< tag type */
+#define NANOCBOR_TYPE_FLOAT (0x07U) /**< float type */
 /** @} */
 
 /**
  * @name CBOR major types including the bit shift
  * @{
  */
-#define NANOCBOR_MASK_UINT      (NANOCBOR_TYPE_UINT  << NANOCBOR_TYPE_OFFSET)
-#define NANOCBOR_MASK_NINT      (NANOCBOR_TYPE_NINT  << NANOCBOR_TYPE_OFFSET)
-#define NANOCBOR_MASK_BSTR      (NANOCBOR_TYPE_BSTR  << NANOCBOR_TYPE_OFFSET)
-#define NANOCBOR_MASK_TSTR      (NANOCBOR_TYPE_TSTR  << NANOCBOR_TYPE_OFFSET)
-#define NANOCBOR_MASK_ARR       (NANOCBOR_TYPE_ARR   << NANOCBOR_TYPE_OFFSET)
-#define NANOCBOR_MASK_MAP       (NANOCBOR_TYPE_MAP   << NANOCBOR_TYPE_OFFSET)
-#define NANOCBOR_MASK_TAG       (NANOCBOR_TYPE_TAG   << NANOCBOR_TYPE_OFFSET)
-#define NANOCBOR_MASK_FLOAT     (NANOCBOR_TYPE_FLOAT << NANOCBOR_TYPE_OFFSET)
+#define NANOCBOR_MASK_UINT (NANOCBOR_TYPE_UINT << NANOCBOR_TYPE_OFFSET)
+#define NANOCBOR_MASK_NINT (NANOCBOR_TYPE_NINT << NANOCBOR_TYPE_OFFSET)
+#define NANOCBOR_MASK_BSTR (NANOCBOR_TYPE_BSTR << NANOCBOR_TYPE_OFFSET)
+#define NANOCBOR_MASK_TSTR (NANOCBOR_TYPE_TSTR << NANOCBOR_TYPE_OFFSET)
+#define NANOCBOR_MASK_ARR (NANOCBOR_TYPE_ARR << NANOCBOR_TYPE_OFFSET)
+#define NANOCBOR_MASK_MAP (NANOCBOR_TYPE_MAP << NANOCBOR_TYPE_OFFSET)
+#define NANOCBOR_MASK_TAG (NANOCBOR_TYPE_TAG << NANOCBOR_TYPE_OFFSET)
+#define NANOCBOR_MASK_FLOAT (NANOCBOR_TYPE_FLOAT << NANOCBOR_TYPE_OFFSET)
 /** @} */
 
 /**
  * @name CBOR simple data types
  * @{
  */
-#define NANOCBOR_SIMPLE_FALSE       20U /**< False     */
-#define NANOCBOR_SIMPLE_TRUE        21U /**< True      */
-#define NANOCBOR_SIMPLE_NULL        22U /**< NULL      */
-#define NANOCBOR_SIMPLE_UNDEF       23U /**< Undefined */
+#define NANOCBOR_SIMPLE_FALSE 20U /**< False     */
+#define NANOCBOR_SIMPLE_TRUE 21U /**< True      */
+#define NANOCBOR_SIMPLE_NULL 22U /**< NULL      */
+#define NANOCBOR_SIMPLE_UNDEF 23U /**< Undefined */
 /** @} */
 
 /**
  * @name CBOR data sizes
  * @{
  */
-#define NANOCBOR_SIZE_BYTE          24U /**< Value contained in a byte */
-#define NANOCBOR_SIZE_SHORT         25U /**< Value contained in a short */
-#define NANOCBOR_SIZE_WORD          26U /**< Value contained in a word */
-#define NANOCBOR_SIZE_LONG          27U /**< Value contained in a long */
-#define NANOCBOR_SIZE_INDEFINITE    31U /**< Indefinite sized container */
+#define NANOCBOR_SIZE_BYTE 24U /**< Value contained in a byte */
+#define NANOCBOR_SIZE_SHORT 25U /**< Value contained in a short */
+#define NANOCBOR_SIZE_WORD 26U /**< Value contained in a word */
+#define NANOCBOR_SIZE_LONG 27U /**< Value contained in a long */
+#define NANOCBOR_SIZE_INDEFINITE 31U /**< Indefinite sized container */
 /** @} */
 
 /**
  * @name CBOR Tag values
  * @{
  */
-#define NANOCBOR_TAG_DATE_TIME      (0x0) /**< Standard date/time string */
-#define NANOCBOR_TAG_EPOCH          (0x1) /**< Epoch-based date/time */
-#define NANOCBOR_TAG_BIGNUMS_P      (0x2) /**< Positive bignum */
-#define NANOCBOR_TAG_BIGNUMS_N      (0x3) /**< Negative bignum */
-#define NANOCBOR_TAG_DEC_FRAC       (0x4) /**< Decimal Fraction */
-#define NANOCBOR_TAG_BIGFLOATS      (0x5) /**< Bigfloat */
+#define NANOCBOR_TAG_DATE_TIME (0x0) /**< Standard date/time string */
+#define NANOCBOR_TAG_EPOCH (0x1) /**< Epoch-based date/time */
+#define NANOCBOR_TAG_BIGNUMS_P (0x2) /**< Positive bignum */
+#define NANOCBOR_TAG_BIGNUMS_N (0x3) /**< Negative bignum */
+#define NANOCBOR_TAG_DEC_FRAC (0x4) /**< Decimal Fraction */
+#define NANOCBOR_TAG_BIGFLOATS (0x5) /**< Bigfloat */
 /** @} */
 
 /**
@@ -139,25 +139,24 @@ typedef enum {
     NANOCBOR_NOT_FOUND = -5,
 } nanocbor_error_t;
 
-
 /**
  * @brief decoder context
  */
 typedef struct nanocbor_value {
-    const uint8_t *cur;   /**< Current position in the buffer             */
-    const uint8_t *end;   /**< End of the buffer                          */
-    uint32_t remaining;   /**< Number of items remaining in the container */
-    uint8_t flags;        /**< Flags for decoding hints                   */
+    const uint8_t *cur; /**< Current position in the buffer             */
+    const uint8_t *end; /**< End of the buffer                          */
+    uint32_t remaining; /**< Number of items remaining in the container */
+    uint8_t flags; /**< Flags for decoding hints                   */
 } nanocbor_value_t;
 
 /**
  * @brief encoder context
  */
 typedef struct nanocbor_encoder {
-    uint8_t *cur;   /**< Current position in the buffer */
-    uint8_t *end;   /**< end of the buffer                      */
-    size_t len;     /**< Length in bytes of supplied cbor data. Incremented
-                      *  separate from the buffer check  */
+    uint8_t *cur; /**< Current position in the buffer */
+    uint8_t *end; /**< end of the buffer                      */
+    size_t len; /**< Length in bytes of supplied cbor data. Incremented
+                 *  separate from the buffer check  */
 } nanocbor_encoder_t;
 
 /**
@@ -168,7 +167,7 @@ typedef struct nanocbor_encoder {
 /**
  * @brief decoder value is inside a container
  */
-#define NANOCBOR_DECODER_FLAG_CONTAINER  (0x01U)
+#define NANOCBOR_DECODER_FLAG_CONTAINER (0x01U)
 
 /**
  * @brief decoder value is inside an indefinite length container
@@ -191,8 +190,8 @@ typedef struct nanocbor_encoder {
  * @param[in]   buf     Buffer to decode from
  * @param[in]   len     Length in bytes of the buffer
  */
-void nanocbor_decoder_init(nanocbor_value_t *value,
-                           const uint8_t *buf, size_t len);
+void nanocbor_decoder_init(nanocbor_value_t *value, const uint8_t *buf,
+                           size_t len);
 
 /**
  * @brief Retrieve the type of the CBOR value at the current position
@@ -366,7 +365,8 @@ int nanocbor_get_decimal_frac(nanocbor_value_t *cvalue, int32_t *e, int32_t *m);
  * @return              NANOCBOR_OK on success
  * @return              negative on error
  */
-int nanocbor_get_bstr(nanocbor_value_t *cvalue, const uint8_t **buf, size_t *len);
+int nanocbor_get_bstr(nanocbor_value_t *cvalue, const uint8_t **buf,
+                      size_t *len);
 
 /**
  * @brief Retrieve a text string from the stream
@@ -381,7 +381,8 @@ int nanocbor_get_bstr(nanocbor_value_t *cvalue, const uint8_t **buf, size_t *len
  * @return              NANOCBOR_OK on success
  * @return              negative on error
  */
-int nanocbor_get_tstr(nanocbor_value_t *cvalue, const uint8_t **buf, size_t *len);
+int nanocbor_get_tstr(nanocbor_value_t *cvalue, const uint8_t **buf,
+                      size_t *len);
 
 /**
  * @brief Search for a tstr key in a map.
@@ -432,7 +433,8 @@ int nanocbor_enter_map(const nanocbor_value_t *it, nanocbor_value_t *map);
  * @param[in]   it          parent CBOR structure
  * @param[in]   container   exhausted CBOR container
  */
-void nanocbor_leave_container(nanocbor_value_t *it, nanocbor_value_t *container);
+void nanocbor_leave_container(nanocbor_value_t *it,
+                              nanocbor_value_t *container);
 
 /**
  * @brief Retrieve a tag as positive uint32_t from the stream
@@ -583,7 +585,8 @@ int nanocbor_get_subcbor(nanocbor_value_t *it, const uint8_t **start,
  *
  * @return              number of items remaining
  */
-static inline uint32_t nanocbor_container_remaining(const nanocbor_value_t *value)
+static inline uint32_t
+nanocbor_container_remaining(const nanocbor_value_t *value)
 {
     return value->remaining;
 }
@@ -597,10 +600,12 @@ static inline uint32_t nanocbor_container_remaining(const nanocbor_value_t *valu
  * @return                  False when not indefinite-length or not in a
  *                          container
  */
-static inline bool nanocbor_container_indefinite(const nanocbor_value_t *container)
+static inline bool
+nanocbor_container_indefinite(const nanocbor_value_t *container)
 {
-    return (container->flags ==
-        (NANOCBOR_DECODER_FLAG_INDEFINITE | NANOCBOR_DECODER_FLAG_CONTAINER));
+    return (container->flags
+            == (NANOCBOR_DECODER_FLAG_INDEFINITE
+                | NANOCBOR_DECODER_FLAG_CONTAINER));
 }
 
 static inline bool nanocbor_in_container(const nanocbor_value_t *container)
@@ -625,8 +630,7 @@ static inline bool nanocbor_in_container(const nanocbor_value_t *container)
  * @param[in]   buf     Buffer to write into
  * @param[in]   len     length of the buffer
  */
-void nanocbor_encoder_init(nanocbor_encoder_t *enc,
-                           uint8_t *buf, size_t len);
+void nanocbor_encoder_init(nanocbor_encoder_t *enc, uint8_t *buf, size_t len);
 
 /**
  * @brief Retrieve the encoded length of the CBOR structure
