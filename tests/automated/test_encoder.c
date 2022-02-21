@@ -8,6 +8,7 @@
 #include <float.h>
 #include <math.h>
 
+
 static void print_bytestr(const uint8_t *bytes, size_t len)
 {
     printf("\n");
@@ -39,6 +40,7 @@ static void test_encode_float_specials(void)
 
 static void test_encode_float_to_half(void)
 {
+// NOLINTBEGIN
     uint8_t buf[64];
     nanocbor_encoder_t enc;
     nanocbor_encoder_init(&enc, buf, sizeof(buf));
@@ -53,6 +55,7 @@ static void test_encode_float_to_half(void)
     CU_ASSERT_EQUAL(nanocbor_fmt_float(&enc, -1.9990234375), 3);
     CU_ASSERT_EQUAL(nanocbor_fmt_float(&enc, -1.99951171875), 5);
     CU_ASSERT_EQUAL(nanocbor_fmt_float(&enc, -2.0009765625), 5);
+// NOLINTEND
 
     nanocbor_fmt_end_indefinite(&enc);
     print_bytestr(buf, nanocbor_encoded_len(&enc));

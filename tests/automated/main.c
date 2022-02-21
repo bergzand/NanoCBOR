@@ -29,8 +29,9 @@ static int add_tests(CU_pSuite pSuite, const test_t *tests)
 int main()
 {
     CU_pSuite pSuite = NULL;
-    if (CUE_SUCCESS != CU_initialize_registry())
+    if (CUE_SUCCESS != CU_initialize_registry()) {
         return CU_get_error();
+    }
     pSuite = CU_add_suite("Nanocbor decode", NULL, NULL);
     if (NULL == pSuite) {
         CU_cleanup_registry();

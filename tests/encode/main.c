@@ -2,9 +2,9 @@
  * SPDX-License-Identifier: CC0-1.0
  */
 
-#include <stdio.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 
@@ -25,7 +25,7 @@ static void _encode(nanocbor_encoder_t *enc)
     nanocbor_fmt_int(enc, -500);
     nanocbor_put_tstr(enc, "this is a long string");
     nanocbor_fmt_float(enc, 0.34);
-    nanocbor_put_bstr(enc, (uint8_t*)"bytez", sizeof("bytez"));
+    nanocbor_put_bstr(enc, (uint8_t *)"bytez", sizeof("bytez"));
     nanocbor_fmt_null(enc);
     nanocbor_fmt_decimal_frac(enc, -2, 27315);
     nanocbor_fmt_end_indefinite(enc);
@@ -48,7 +48,7 @@ int main(void)
     nanocbor_encoder_init(&enc, buf, required);
     _encode(&enc);
 
-    //printf("Bytes: %u\n", (unsigned)nanocbor_encoded_len(&enc));
+    // printf("Bytes: %u\n", (unsigned)nanocbor_encoded_len(&enc));
     fwrite(buf, 1, nanocbor_encoded_len(&enc), stdout);
 
     return 0;
