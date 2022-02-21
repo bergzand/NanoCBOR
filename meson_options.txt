@@ -1,0 +1,11 @@
+option('enable-examples',
+  type : 'boolean',
+  value : true,
+  description : 'Enables example applications.'
+)
+
+option('enable-tests',
+  type : 'boolean',
+  value : true,
+  description : 'Enables tests.'
+)
