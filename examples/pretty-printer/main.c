@@ -12,6 +12,9 @@
 
 #include "nanocbor/nanocbor.h"
 
+#define CBOR_READ_BUFFER_BYTES 4096
+#define MAX_DEPTH 20
+
 static const struct argp_option cmdline_options[] = {
     { "pretty", 'p', 0, OPTION_ARG_OPTIONAL,
       "Produce pretty printing with newlines and indents", 0 },
@@ -24,9 +27,9 @@ struct arguments {
     char *input;
 };
 
-static struct arguments args = { false, NULL };
+static struct arguments _args = { false, NULL };
 
-char buffer[4096];
+static char buffer[CBOR_READ_BUFFER_BYTES];
 
 static error_t _parse_opts(int key, char *arg, struct argp_state *state)
 {
@@ -53,7 +56,7 @@ static int _parse_type(nanocbor_value_t *value, unsigned indent);
 
 static void _print_indent(unsigned indent)
 {
-    if (args.pretty) {
+    if (_args.pretty) {
         for (unsigned i = 0; i < indent; i++) {
             printf("  ");
         }
@@ -62,7 +65,7 @@ static void _print_indent(unsigned indent)
 
 static void _print_separator(void)
 {
-    if (args.pretty) {
+    if (_args.pretty) {
         printf("\n");
     }
     else {
@@ -70,7 +73,8 @@ static void _print_separator(void)
     }
 }
 
-void _parse_cbor(nanocbor_value_t *it, unsigned indent)
+/* NOLINTNEXTLINE(misc-no-recursion) */
+static void _parse_cbor(nanocbor_value_t *it, unsigned indent)
 {
     while (!nanocbor_at_end(it)) {
         _print_indent(indent);
@@ -88,7 +92,8 @@ void _parse_cbor(nanocbor_value_t *it, unsigned indent)
     }
 }
 
-void _parse_map(nanocbor_value_t *it, unsigned indent)
+/* NOLINTNEXTLINE(misc-no-recursion) */
+static void _parse_map(nanocbor_value_t *it, unsigned indent)
 {
     while (!nanocbor_at_end(it)) {
         _print_indent(indent);
@@ -110,15 +115,16 @@ void _parse_map(nanocbor_value_t *it, unsigned indent)
     }
 }
 
+/* NOLINTNEXTLINE(misc-no-recursion, readability-function-cognitive-complexity) */
 static int _parse_type(nanocbor_value_t *value, unsigned indent)
 {
     uint8_t type = nanocbor_get_type(value);
-    if (indent > 20) {
+    if (indent > MAX_DEPTH) {
         return -2;
     }
     switch (type) {
     case NANOCBOR_TYPE_UINT: {
-        uint64_t uint;
+        uint64_t uint = 0;
         if (nanocbor_get_uint64(value, &uint) >= 0) {
             printf("%" PRIu64, uint);
         }
@@ -127,7 +133,7 @@ static int _parse_type(nanocbor_value_t *value, unsigned indent)
         }
     } break;
     case NANOCBOR_TYPE_NINT: {
-        int64_t nint;
+        int64_t nint = 0;
         if (nanocbor_get_int64(value, &nint) >= 0) {
             printf("%" PRIi64, nint);
         }
@@ -137,7 +143,7 @@ static int _parse_type(nanocbor_value_t *value, unsigned indent)
     } break;
     case NANOCBOR_TYPE_BSTR: {
         const uint8_t *buf = NULL;
-        size_t len;
+        size_t len = 0;
         if (nanocbor_get_bstr(value, &buf, &len) >= 0 && buf) {
             size_t iter = 0;
             printf("h\'");
@@ -152,8 +158,8 @@ static int _parse_type(nanocbor_value_t *value, unsigned indent)
         }
     } break;
     case NANOCBOR_TYPE_TSTR: {
-        const uint8_t *buf;
-        size_t len;
+        const uint8_t *buf = NULL;
+        size_t len = 0;
         if (nanocbor_get_tstr(value, &buf, &len) >= 0) {
             printf("\"%.*s\"", (int)len, buf);
         }
@@ -190,8 +196,8 @@ static int _parse_type(nanocbor_value_t *value, unsigned indent)
         }
     } break;
     case NANOCBOR_TYPE_FLOAT: {
-        bool test;
-        uint8_t simple;
+        bool test = false;
+        uint8_t simple = 0;
         float fvalue = 0;
         double dvalue = 0;
         if (nanocbor_get_bool(value, &test) >= NANOCBOR_OK) {
@@ -218,7 +224,7 @@ static int _parse_type(nanocbor_value_t *value, unsigned indent)
         break;
     }
     case NANOCBOR_TYPE_TAG: {
-        uint32_t tag;
+        uint32_t tag = 0;
         if (nanocbor_get_tag(value, &tag) >= NANOCBOR_OK) {
             printf("%" PRIu32 "(", tag);
             _parse_type(value, 0);
@@ -240,18 +246,20 @@ int main(int argc, char *argv[])
 {
     struct argp arg_parse
         = { cmdline_options, _parse_opts, NULL, NULL, NULL, NULL, NULL };
-    argp_parse(&arg_parse, argc, argv, 0, 0, &args);
+    argp_parse(&arg_parse, argc, argv, 0, 0, &_args);
 
     FILE *fp = stdin;
 
-    if (strcmp(args.input, "-") != 0) {
-        fp = fopen(args.input, "rb");
-    }
-
-    ssize_t len = fread(buffer, 1, sizeof(buffer), fp);
-    if (len < 0) {
+    if (_args.input == NULL) {
         return -1;
     }
+
+    if (strcmp(_args.input, "-") != 0) {
+        fp = fopen(_args.input, "rbe");
+    }
+
+    size_t len = fread(buffer, 1, sizeof(buffer), fp);
+
     fclose(fp);
     printf("Start decoding %lu bytes:\n", (long unsigned)len);
 
