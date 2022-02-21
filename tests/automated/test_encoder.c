@@ -2,17 +2,16 @@
  * SPDX-License-Identifier: CC0-1.0
  */
 
-#include "test.h"
 #include "nanocbor/nanocbor.h"
-#include <math.h>
-#include <float.h>
+#include "test.h"
 #include <CUnit/CUnit.h>
+#include <float.h>
+#include <math.h>
 
 static void print_bytestr(const uint8_t *bytes, size_t len)
 {
     printf("\n");
-    for(unsigned int idx=0; idx < len; idx++)
-    {
+    for (unsigned int idx = 0; idx < len; idx++) {
         printf("%02X", bytes[idx]);
     }
     printf("\n");
@@ -104,5 +103,5 @@ const test_t tests_encoder[] = {
     {
         .f = NULL,
         .n = NULL,
-    }
+    },
 };

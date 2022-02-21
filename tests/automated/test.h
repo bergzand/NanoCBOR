@@ -18,8 +18,8 @@ typedef void (*test_func)(void);
  * Struct to define a test
  */
 typedef struct test {
-    const test_func f;  /**< Function to run as test */
-    const char *n;      /**< Name or description of the test */
+    const test_func f; /**< Function to run as test */
+    const char *n; /**< Name or description of the test */
 } test_t;
 
 #ifdef __cplusplus

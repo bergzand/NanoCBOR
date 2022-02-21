@@ -2,23 +2,23 @@
  * SPDX-License-Identifier: CC0-1.0
  */
 
-#include <time.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 
-#include "CUnit/CUnit.h"
 #include "CUnit/Basic.h"
+#include "CUnit/CUnit.h"
 #include "test.h"
 
 extern const test_t tests_decoder[];
 extern const test_t tests_encoder[];
 
-static int add_tests(CU_pSuite pSuite, const test_t* tests)
+static int add_tests(CU_pSuite pSuite, const test_t *tests)
 {
-   /* add the tests to the suite */
-    for(int i = 0; tests[i].n !=NULL; i++) {
-        if(!(CU_add_test(pSuite, tests[i].n, tests[i].f))) {
-            printf("Error adding function %s\n",tests[i].n);
+    /* add the tests to the suite */
+    for (int i = 0; tests[i].n != NULL; i++) {
+        if (!(CU_add_test(pSuite, tests[i].n, tests[i].f))) {
+            printf("Error adding function %s\n", tests[i].n);
             CU_cleanup_registry();
             return CU_get_error();
         }

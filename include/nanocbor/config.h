@@ -26,7 +26,7 @@ extern "C" {
  * @brief Recursion limit when using @ref nanocbor_skip.
  */
 #ifndef NANOCBOR_RECURSION_MAX
-#define NANOCBOR_RECURSION_MAX  10
+#define NANOCBOR_RECURSION_MAX 10
 #endif
 
 /**
@@ -43,7 +43,7 @@ extern "C" {
  * must take a uint64_t big endian and return it in host endianess
  */
 #ifndef NANOCBOR_BE64TOH_FUNC
-#define NANOCBOR_BE64TOH_FUNC(be)   (be64toh(be))
+#define NANOCBOR_BE64TOH_FUNC(be) (be64toh(be))
 #endif
 
 /**
@@ -52,7 +52,7 @@ extern "C" {
  * must take a uint64_t in host endianess and return the big endian value
  */
 #ifndef NANOCBOR_HTOBE64_FUNC
-#define NANOCBOR_HTOBE64_FUNC(he)   htobe64(he)
+#define NANOCBOR_HTOBE64_FUNC(he) htobe64(he)
 #endif
 
 /**
@@ -61,7 +61,7 @@ extern "C" {
  * must take a uint32_t in host endianess and return the big endian value
  */
 #ifndef NANOCBOR_HTOBE32_FUNC
-#define NANOCBOR_HTOBE32_FUNC(he)   htobe32(he)
+#define NANOCBOR_HTOBE32_FUNC(he) htobe32(he)
 #endif
 
 /**
@@ -69,11 +69,11 @@ extern "C" {
  */
 #ifndef NANOCBOR_SIZE_SIZET
 #if (SIZE_MAX == UINT16_MAX)
-#define NANOCBOR_SIZE_SIZET           NANOCBOR_SIZE_SHORT
+#define NANOCBOR_SIZE_SIZET NANOCBOR_SIZE_SHORT
 #elif (SIZE_MAX == UINT32_MAX)
-#define NANOCBOR_SIZE_SIZET           NANOCBOR_SIZE_WORD
+#define NANOCBOR_SIZE_SIZET NANOCBOR_SIZE_WORD
 #elif (SIZE_MAX == UINT64_MAX)
-#define NANOCBOR_SIZE_SIZET           NANOCBOR_SIZE_LONG
+#define NANOCBOR_SIZE_SIZET NANOCBOR_SIZE_LONG
 #else
 #error ERROR: unable to determine maximum size of size_t
 #endif
