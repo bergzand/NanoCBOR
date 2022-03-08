@@ -68,9 +68,6 @@ static void _print_separator(void)
     if (_args.pretty) {
         printf("\n");
     }
-    else {
-        printf(" ");
-    }
 }
 
 /* NOLINTNEXTLINE(misc-no-recursion) */
@@ -86,7 +83,7 @@ static void _parse_cbor(nanocbor_value_t *it, unsigned indent)
         }
 
         if (!nanocbor_at_end(it)) {
-            printf(",");
+            printf(", ");
         }
         _print_separator();
     }
@@ -109,7 +106,7 @@ static void _parse_map(nanocbor_value_t *it, unsigned indent)
             break;
         }
         if (!nanocbor_at_end(it)) {
-            printf(",");
+            printf(", ");
         }
         _print_separator();
     }
@@ -213,10 +210,10 @@ static int _parse_type(nanocbor_value_t *value, unsigned indent)
             printf("\"simple(%u)\"", simple);
         }
         else if (nanocbor_get_float(value, &fvalue) >= 0) {
-            printf("%g", fvalue);
+            printf("%f", fvalue);
         }
         else if (nanocbor_get_double(value, &dvalue) >= 0) {
-            printf("%g", dvalue);
+            printf("%f", dvalue);
         }
         else {
             return -1;
