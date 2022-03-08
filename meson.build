@@ -16,10 +16,10 @@ shared_library_bin_deps = [
 nanocbor_lib = library('nanocbor', project_sources, include_directories: inc) 
 
 
-if get_option('enable-tests')
-  subdir('tests')
-endif
 if get_option('enable-examples')
   subdir('examples')
+endif
+if get_option('enable-tests')
+  subdir('tests')
 endif
 

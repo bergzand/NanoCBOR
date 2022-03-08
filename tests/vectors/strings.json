@@ -1,0 +1,56 @@
+[
+  {
+    "cbor": "QA==",
+    "hex": "40",
+    "roundtrip": true,
+    "diagnostic": "h''"
+  },
+  {
+    "cbor": "RAECAwQ=",
+    "hex": "4401020304",
+    "roundtrip": true,
+    "diagnostic": "h'01020304'"
+  },
+  {
+    "cbor": "YA==",
+    "hex": "60",
+    "roundtrip": true,
+    "decoded": ""
+  },
+  {
+    "cbor": "YWE=",
+    "hex": "6161",
+    "roundtrip": true,
+    "decoded": "a"
+  },
+  {
+    "cbor": "ZElFVEY=",
+    "hex": "6449455446",
+    "roundtrip": true,
+    "decoded": "IETF"
+  },
+  {
+    "cbor": "YiJc",
+    "hex": "62225c",
+    "roundtrip": true,
+    "decoded": "\"\\"
+  },
+  {
+    "cbor": "YsO8",
+    "hex": "62c3bc",
+    "roundtrip": true,
+    "decoded": "ü"
+  },
+  {
+    "cbor": "Y+awtA==",
+    "hex": "63e6b0b4",
+    "roundtrip": true,
+    "decoded": "水"
+  },
+  {
+    "cbor": "ZPCQhZE=",
+    "hex": "64f0908591",
+    "roundtrip": true,
+    "decoded": "𐅑"
+  }
+]
