@@ -24,7 +24,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Install prerequisites"
-        run:  apt update && apt install -y pkg-config libcunit1-dev meson ninja-build
+        run:  apt update && apt install -y pkg-config libcunit1-dev meson ninja-build python3-pexpect
       - name: Configure
         run: meson build
       - name: compile

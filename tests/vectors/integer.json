@@ -1,0 +1,110 @@
+[
+  {
+    "cbor": "AA==",
+    "hex": "00",
+    "roundtrip": true,
+    "decoded": 0
+  },
+  {
+    "cbor": "AQ==",
+    "hex": "01",
+    "roundtrip": true,
+    "decoded": 1
+  },
+  {
+    "cbor": "Cg==",
+    "hex": "0a",
+    "roundtrip": true,
+    "decoded": 10
+  },
+  {
+    "cbor": "Fw==",
+    "hex": "17",
+    "roundtrip": true,
+    "decoded": 23
+  },
+  {
+    "cbor": "GBg=",
+    "hex": "1818",
+    "roundtrip": true,
+    "decoded": 24
+  },
+  {
+    "cbor": "GBk=",
+    "hex": "1819",
+    "roundtrip": true,
+    "decoded": 25
+  },
+  {
+    "cbor": "GGQ=",
+    "hex": "1864",
+    "roundtrip": true,
+    "decoded": 100
+  },
+  {
+    "cbor": "GQPo",
+    "hex": "1903e8",
+    "roundtrip": true,
+    "decoded": 1000
+  },
+  {
+    "cbor": "GgAPQkA=",
+    "hex": "1a000f4240",
+    "roundtrip": true,
+    "decoded": 1000000
+  },
+  {
+    "cbor": "GwAAAOjUpRAA",
+    "hex": "1b000000e8d4a51000",
+    "roundtrip": true,
+    "decoded": 1000000000000
+  },
+  {
+    "cbor": "G///////////",
+    "hex": "1bffffffffffffffff",
+    "roundtrip": true,
+    "decoded": 18446744073709551615
+  },
+  {
+    "cbor": "wkkBAAAAAAAAAAA=",
+    "hex": "c249010000000000000000",
+    "roundtrip": true,
+    "decoded": 18446744073709551616
+  },
+  {
+    "cbor": "O///////////",
+    "hex": "3bffffffffffffffff",
+    "roundtrip": true,
+    "decoded": -18446744073709551616
+  },
+  {
+    "cbor": "w0kBAAAAAAAAAAA=",
+    "hex": "c349010000000000000000",
+    "roundtrip": true,
+    "decoded": -18446744073709551617
+  },
+  {
+    "cbor": "IA==",
+    "hex": "20",
+    "roundtrip": true,
+    "decoded": -1
+  },
+  {
+    "cbor": "KQ==",
+    "hex": "29",
+    "roundtrip": true,
+    "decoded": -10
+  },
+  {
+    "cbor": "OGM=",
+    "hex": "3863",
+    "roundtrip": true,
+    "decoded": -100
+  },
+  {
+    "cbor": "OQPn",
+    "hex": "3903e7",
+    "roundtrip": true,
+    "decoded": -1000
+  }
+]

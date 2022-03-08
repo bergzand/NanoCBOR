@@ -1,0 +1,38 @@
+[
+  {
+    "cbor": "wHQyMDEzLTAzLTIxVDIwOjA0OjAwWg==",
+    "hex": "c074323031332d30332d32315432303a30343a30305a",
+    "roundtrip": true,
+    "diagnostic": "0(\"2013-03-21T20:04:00Z\")"
+  },
+  {
+    "cbor": "wRpRS2ew",
+    "hex": "c11a514b67b0",
+    "roundtrip": true,
+    "diagnostic": "1(1363896240)"
+  },
+  {
+    "cbor": "wftB1FLZ7CAAAA==",
+    "hex": "c1fb41d452d9ec200000",
+    "roundtrip": true,
+    "diagnostic": "1(1363896240.5)"
+  },
+  {
+    "cbor": "10QBAgME",
+    "hex": "d74401020304",
+    "roundtrip": true,
+    "diagnostic": "23(h'01020304')"
+  },
+  {
+    "cbor": "2BhFZElFVEY=",
+    "hex": "d818456449455446",
+    "roundtrip": true,
+    "diagnostic": "24(h'6449455446')"
+  },
+  {
+    "cbor": "2CB2aHR0cDovL3d3dy5leGFtcGxlLmNvbQ==",
+    "hex": "d82076687474703a2f2f7777772e6578616d706c652e636f6d",
+    "roundtrip": true,
+    "diagnostic": "32(\"http://www.example.com\")"
+  }
+]

@@ -1,0 +1,44 @@
+[
+  {
+    "cbor": "9A==",
+    "hex": "f4",
+    "roundtrip": true,
+    "decoded": false
+  },
+  {
+    "cbor": "9Q==",
+    "hex": "f5",
+    "roundtrip": true,
+    "decoded": true
+  },
+  {
+    "cbor": "9g==",
+    "hex": "f6",
+    "roundtrip": true,
+    "decoded": null
+  },
+  {
+    "cbor": "9w==",
+    "hex": "f7",
+    "roundtrip": true,
+    "diagnostic": "undefined"
+  },
+  {
+    "cbor": "8A==",
+    "hex": "f0",
+    "roundtrip": true,
+    "diagnostic": "simple(16)"
+  },
+  {
+    "cbor": "+Bg=",
+    "hex": "f818",
+    "roundtrip": true,
+    "diagnostic": "simple(24)"
+  },
+  {
+    "cbor": "+P8=",
+    "hex": "f8ff",
+    "roundtrip": true,
+    "diagnostic": "simple(255)"
+  }
+]
