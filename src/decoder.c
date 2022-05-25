@@ -397,7 +397,7 @@ static int _decode_half_float(nanocbor_value_t *cvalue, float *value)
         uint32_t significant = tmp & HALF_FRAC_MASK;
         uint32_t exponent = tmp & (HALF_EXP_MASK << HALF_EXP_POS);
 
-        static const uint32_t magic = (FLOAT_EXP_OFFSET - 1) << FLOAT_EXP_POS;
+        static const uint32_t magic = ((uint32_t)FLOAT_EXP_OFFSET - 1) << FLOAT_EXP_POS;
         static const float *fmagic = (float *)&magic;
 
         if (exponent == 0) {
