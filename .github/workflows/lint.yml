@@ -10,7 +10,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Install prerequisites"
-        run:  apt update && apt install -y meson ninja-build
+        run:  apt update && apt install -y meson ninja-build python-is-python3
       - name: Configure
         run: meson build -Denable-tests=false -Denable-examples=false
       - name: ${{ matrix.check }}
