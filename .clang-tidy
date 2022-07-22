@@ -1,5 +1,5 @@
 ---
-Checks:          '*,-altera-*,-cert-*,-llvmlibc-restrict-system-libc-headers,-bugprone-reserved-identifier,-bugprone-easily-swappable-parameters'
+Checks:          '*,-altera-*,-cert-*,-llvmlibc-restrict-system-libc-headers,-bugprone-reserved-identifier,-bugprone-easily-swappable-parameters,-readability-identifier-length'
 WarningsAsErrors: '*'
 HeaderFilterRegex: ''
 AnalyzeTemporaryDtors: false

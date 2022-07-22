@@ -30,7 +30,7 @@ jobs:
       - name: compile
         run: ninja -C build
       - name: Run tests
-        run: ninja -C build test
+        run: meson test -C build --verbose --timeout-multiplier 5
       - name: Upload test log
         uses: actions/upload-artifact@v2
         with:
