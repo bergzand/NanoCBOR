@@ -150,14 +150,64 @@ typedef struct nanocbor_value {
 } nanocbor_value_t;
 
 /**
+ * @brief Encoder context forward declaration
+ */
+typedef struct nanocbor_encoder nanocbor_encoder_t;
+
+/**
+ * @name encoder streaming functions
+ * @{
+ */
+
+/**
+ * @brief Fits function for streaming encoder data
+ *
+ * This function is called to check whether the data that will be supplied can
+ * be consumed by the interface.
+ *
+ * The append function will only be called if this function returns true. The
+ * amount of bytes checked by this call can be used by multiple successive
+ * @ref nanocbor_encoder_append calls
+ *
+ * @param   enc     The encoder context struct
+ * @param   ctx     The context ptr supplied in the
+ *                  @ref nanocbor_encoder_stream_init call
+ * @param   len     Length of the data in bytes that will be supplied
+ */
+typedef bool (*nanocbor_encoder_fits)(nanocbor_encoder_t *enc, void *ctx, size_t len);
+
+/**
+ * @brief Append function for streaming encoder data
+ *
+ * This is a user supplied function for the polymorphic encoder interface. It
+ * will only be called if a previous call to @ref nanocbor_encoder_fits returned
+ * true.
+ *
+ * @param   enc     The encoder context struct
+ * @param   ctx     The context ptr supplied in the
+ *                  @ref nanocbor_encoder_stream_init call
+ * @param   data    Data emitted by the encoder
+ * @param   len     Length of the data in bytes
+ */
+typedef void (*nanocbor_encoder_append)(nanocbor_encoder_t *enc, void *ctx, const uint8_t *data, size_t len);
+
+/** @} */
+
+/**
  * @brief encoder context
  */
-typedef struct nanocbor_encoder {
-    uint8_t *cur; /**< Current position in the buffer */
-    uint8_t *end; /**< end of the buffer                      */
+struct nanocbor_encoder {
     size_t len; /**< Length in bytes of supplied cbor data. Incremented
                  *  separate from the buffer check  */
-} nanocbor_encoder_t;
+    nanocbor_encoder_append append; /**< Function used to append encoded data */
+    nanocbor_encoder_fits fits; /** Function used to check encoded length */
+    union {
+        uint8_t *cur; /**< Current position in the buffer, unioned to keep
+                       *   compatibility */
+        void *context; /**< Context ptr supplied to the custom functions */
+    };
+    uint8_t *end; /**< end of the buffer                      */
+};
 
 /**
  * @name decoder flags
@@ -621,7 +671,7 @@ static inline bool nanocbor_in_container(const nanocbor_value_t *container)
  */
 
 /**
- * @brief Initializes an encoder context with a buffer.
+ * @brief Initializes an encoder context with a memory buffer.
  *
  * It is safe to pass `NULL` to @p buf with @p len is `0` to determine the size
  * of a CBOR structure.
@@ -631,6 +681,18 @@ static inline bool nanocbor_in_container(const nanocbor_value_t *container)
  * @param[in]   len     length of the buffer
  */
 void nanocbor_encoder_init(nanocbor_encoder_t *enc, uint8_t *buf, size_t len);
+
+/**
+ * @brief Initializes an encoder context with custom append and fits functions.
+ *
+ * @param[in]   enc         Encoder context
+ * @param[in]   ctx         Context pointer
+ * @param[in]   append_func Called to append emitted encoder data
+ * @param[in]   fits_func   Called to check if data can be consumed
+ */
+void nanocbor_encoder_stream_init(nanocbor_encoder_t *enc, void *ctx,
+                                  nanocbor_encoder_append append_func,
+                                  nanocbor_encoder_fits fits_func);
 
 /**
  * @brief Retrieve the encoded length of the CBOR structure
