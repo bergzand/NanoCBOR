@@ -482,8 +482,8 @@ static int _enter_container(const nanocbor_value_t *it,
         return NANOCBOR_OK;
     }
 
-    int res = _get_uint64(it, (uint64_t *)&container->remaining,
-                          NANOCBOR_SIZE_WORD, type);
+    int res = _get_uint64(it, &container->remaining,
+                          NANOCBOR_SIZE_LONG, type);
     if (res < 0) {
         return res;
     }
@@ -501,7 +501,7 @@ int nanocbor_enter_map(const nanocbor_value_t *it, nanocbor_value_t *map)
 {
     int res = _enter_container(it, map, NANOCBOR_TYPE_MAP);
 
-    if (map->remaining > UINT32_MAX / 2) {
+    if (map->remaining > UINT64_MAX / 2) {
         return NANOCBOR_ERR_OVERFLOW;
     }
     map->remaining = map->remaining * 2;
