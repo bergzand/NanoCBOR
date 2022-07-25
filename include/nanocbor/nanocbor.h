@@ -145,7 +145,7 @@ typedef enum {
 typedef struct nanocbor_value {
     const uint8_t *cur; /**< Current position in the buffer             */
     const uint8_t *end; /**< End of the buffer                          */
-    uint32_t remaining; /**< Number of items remaining in the container */
+    uint64_t remaining; /**< Number of items remaining in the container */
     uint8_t flags; /**< Flags for decoding hints                   */
 } nanocbor_value_t;
 
