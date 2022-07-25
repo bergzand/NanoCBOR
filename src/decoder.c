@@ -297,8 +297,9 @@ int nanocbor_get_decimal_frac(nanocbor_value_t *cvalue, int32_t *e, int32_t *m)
 static int _get_str(nanocbor_value_t *cvalue, const uint8_t **buf, size_t *len,
                     uint8_t type)
 {
-    *len = 0;
-    int res = _get_uint64(cvalue, (uint64_t *)len, NANOCBOR_SIZE_SIZET, type);
+    uint64_t tmp = 0;
+    int res = _get_uint64(cvalue, &tmp, NANOCBOR_SIZE_SIZET, type);
+    *len = tmp;
 
     if (cvalue->end - cvalue->cur < 0
         || (size_t)(cvalue->end - cvalue->cur) < *len) {
