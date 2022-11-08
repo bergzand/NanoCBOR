@@ -333,14 +333,18 @@ int nanocbor_get_null(nanocbor_value_t *cvalue)
 
 int nanocbor_get_bool(nanocbor_value_t *cvalue, bool *value)
 {
-    *value = false;
     int res = _value_match_exact(cvalue,
                                  NANOCBOR_MASK_FLOAT | NANOCBOR_SIMPLE_FALSE);
-    if (res < 0) {
-        *value = true;
+    if (res >= NANOCBOR_OK) {
+        *value = false;
+    } else {
         res = _value_match_exact(cvalue,
                                  NANOCBOR_MASK_FLOAT | NANOCBOR_SIMPLE_TRUE);
+        if (res >= NANOCBOR_OK) {
+            *value = true;
+        }
     }
+
     return res;
 }
 
