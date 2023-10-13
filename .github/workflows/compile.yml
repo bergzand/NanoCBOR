@@ -5,17 +5,17 @@ jobs:
     strategy:
       matrix:
         include:
-          - container: gcc:10
-            artifact: gcc-10
+          - container: gcc:12
+            artifact: gcc-12
             cc: gcc
-          - container: gcc:11
-            artifact: gcc-11
+          - container: gcc:13
+            artifact: gcc-13
             cc: gcc
-          - container: silkeh/clang:11
-            artifact: clang-11
+          - container: silkeh/clang:15
+            artifact: clang-15
             cc: clang
-          - container: silkeh/clang:12
-            artifact: clang-12
+          - container: silkeh/clang:16
+            artifact: clang-16
             cc: clang
     runs-on: ubuntu-latest
     env:
