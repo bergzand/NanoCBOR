@@ -112,6 +112,68 @@ static void _parse_map(nanocbor_value_t *it, unsigned indent)
     }
 }
 
+/* NOLINTNEXTLINE(misc-no-recursion) */
+static int _print_enter_map(nanocbor_value_t *value, unsigned indent)
+{
+    nanocbor_value_t map;
+    if (nanocbor_enter_map(value, &map) >= NANOCBOR_OK) {
+        printf("{");
+        _print_separator();
+        _parse_map(&map, indent + 1);
+        nanocbor_leave_container(value, &map);
+        _print_indent(indent);
+        printf("}");
+        return 0;
+    }
+    return -1;
+}
+
+/* NOLINTNEXTLINE(misc-no-recursion) */
+static int _print_enter_array(nanocbor_value_t *value, unsigned indent)
+{
+    nanocbor_value_t arr;
+    if (nanocbor_enter_array(value, &arr) >= 0) {
+        printf("[");
+        _print_separator();
+        _parse_cbor(&arr, indent + 1);
+        nanocbor_leave_container(value, &arr);
+        _print_indent(indent);
+        printf("]");
+        return 0;
+    }
+    return -1;
+}
+
+static int _print_float(nanocbor_value_t *value)
+{
+    bool test = false;
+    uint8_t simple = 0;
+    float fvalue = 0;
+    double dvalue = 0;
+    if (nanocbor_get_bool(value, &test) >= NANOCBOR_OK) {
+        test ? printf("true") : printf("false");
+    }
+    else if (nanocbor_get_null(value) >= NANOCBOR_OK) {
+        printf("null");
+    }
+    else if (nanocbor_get_undefined(value) >= NANOCBOR_OK) {
+        printf("\"undefined\"");
+    }
+    else if (nanocbor_get_simple(value, &simple) >= NANOCBOR_OK) {
+        printf("\"simple(%u)\"", simple);
+    }
+    else if (nanocbor_get_float(value, &fvalue) >= 0) {
+        printf("%f", fvalue);
+    }
+    else if (nanocbor_get_double(value, &dvalue) >= 0) {
+        printf("%f", dvalue);
+    }
+    else {
+        return -1;
+    }
+    return 0;
+}
+
 /* NOLINTNEXTLINE(misc-no-recursion, readability-function-cognitive-complexity) */
 static int _parse_type(nanocbor_value_t *value, unsigned indent)
 {
@@ -119,29 +181,30 @@ static int _parse_type(nanocbor_value_t *value, unsigned indent)
     if (indent > MAX_DEPTH) {
         return -2;
     }
+    int res = 0;
     switch (type) {
     case NANOCBOR_TYPE_UINT: {
         uint64_t uint = 0;
-        if (nanocbor_get_uint64(value, &uint) >= 0) {
+        res = nanocbor_get_uint64(value, &uint);
+        if (res >= 0) {
             printf("%" PRIu64, uint);
-        }
-        else {
-            return -1;
         }
     } break;
     case NANOCBOR_TYPE_NINT: {
         int64_t nint = 0;
-        if (nanocbor_get_int64(value, &nint) >= 0) {
+        res = nanocbor_get_int64(value, &nint);
+        if (res >= 0) {
             printf("%" PRIi64, nint);
-        }
-        else {
-            return -1;
         }
     } break;
     case NANOCBOR_TYPE_BSTR: {
         const uint8_t *buf = NULL;
         size_t len = 0;
-        if (nanocbor_get_bstr(value, &buf, &len) >= 0 && buf) {
+        res = nanocbor_get_bstr(value, &buf, &len);
+        if (res >= 0) {
+            if (!buf) {
+                return -1;
+            }
             size_t iter = 0;
             printf("h\'");
             while (iter < len) {
@@ -150,90 +213,39 @@ static int _parse_type(nanocbor_value_t *value, unsigned indent)
             }
             printf("\'");
         }
-        else {
-            return -1;
-        }
     } break;
     case NANOCBOR_TYPE_TSTR: {
         const uint8_t *buf = NULL;
         size_t len = 0;
-        if (nanocbor_get_tstr(value, &buf, &len) >= 0) {
+        res = nanocbor_get_tstr(value, &buf, &len);
+        if (res >= 0) {
             printf("\"%.*s\"", (int)len, buf);
-        }
-        else {
-            return -1;
         }
     } break;
     case NANOCBOR_TYPE_ARR: {
-        nanocbor_value_t arr;
-        if (nanocbor_enter_array(value, &arr) >= 0) {
-            printf("[");
-            _print_separator();
-            _parse_cbor(&arr, indent + 1);
-            nanocbor_leave_container(value, &arr);
-            _print_indent(indent);
-            printf("]");
-        }
-        else {
-            return -1;
-        }
+        res = _print_enter_array(value, indent);
     } break;
     case NANOCBOR_TYPE_MAP: {
-        nanocbor_value_t map;
-        if (nanocbor_enter_map(value, &map) >= NANOCBOR_OK) {
-            printf("{");
-            _print_separator();
-            _parse_map(&map, indent + 1);
-            nanocbor_leave_container(value, &map);
-            _print_indent(indent);
-            printf("}");
-        }
-        else {
-            return -1;
-        }
+        res = _print_enter_map(value, indent);
     } break;
     case NANOCBOR_TYPE_FLOAT: {
-        bool test = false;
-        uint8_t simple = 0;
-        float fvalue = 0;
-        double dvalue = 0;
-        if (nanocbor_get_bool(value, &test) >= NANOCBOR_OK) {
-            test ? printf("true") : printf("false");
-        }
-        else if (nanocbor_get_null(value) >= NANOCBOR_OK) {
-            printf("null");
-        }
-        else if (nanocbor_get_undefined(value) >= NANOCBOR_OK) {
-            printf("\"undefined\"");
-        }
-        else if (nanocbor_get_simple(value, &simple) >= NANOCBOR_OK) {
-            printf("\"simple(%u)\"", simple);
-        }
-        else if (nanocbor_get_float(value, &fvalue) >= 0) {
-            printf("%f", fvalue);
-        }
-        else if (nanocbor_get_double(value, &dvalue) >= 0) {
-            printf("%f", dvalue);
-        }
-        else {
-            return -1;
-        }
-        break;
-    }
+        res = _print_float(value);
+    } break;
     case NANOCBOR_TYPE_TAG: {
         uint32_t tag = 0;
-        if (nanocbor_get_tag(value, &tag) >= NANOCBOR_OK) {
+        int res = nanocbor_get_tag(value, &tag);
+        if (res >= NANOCBOR_OK) {
             printf("%" PRIu32 "(", tag);
             _parse_type(value, 0);
             printf(")");
-        }
-        else {
-            return -1;
         }
         break;
     }
     default:
         printf("Unsupported type\n");
+        return -1;
+    }
+    if (res < 0) {
         return -1;
     }
     return 1;
