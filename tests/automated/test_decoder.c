@@ -212,7 +212,8 @@ static void test_decode_basic(void)
     int32_t mantissa = 0;
     int32_t exponent = 0;
     nanocbor_decoder_init(&decoder, decimal_frac, sizeof(decimal_frac));
-    CU_ASSERT_EQUAL(nanocbor_get_decimal_frac(&decoder, &exponent, &mantissa), 0);
+    CU_ASSERT_EQUAL(nanocbor_get_decimal_frac(&decoder, &exponent, &mantissa),
+                    0);
     CU_ASSERT_EQUAL(exponent, -2);
     CU_ASSERT_EQUAL(mantissa, 27315);
 }
