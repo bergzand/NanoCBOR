@@ -625,11 +625,13 @@ int nanocbor_get_subcbor(nanocbor_value_t *it, const uint8_t **start,
                          size_t *len);
 
 /**
- * @brief Retrieve the number of remaining values is a CBOR container
+ * @brief Retrieve the number of remaining values in a CBOR container: either array or map
  *
  * The returned value is undefined when not inside a container or when the
  * container is of indefinite length. For a map, the number is the full number
  * of CBOR items remaining (twice the number of key/value pairs).
+ *
+ * See also nanocbor_array_items_remaining and nanocbor_map_items_remaining
  *
  * @param[in]   value   value inside a CBOR container
  *
@@ -639,6 +641,38 @@ static inline uint32_t
 nanocbor_container_remaining(const nanocbor_value_t *value)
 {
     return value->remaining;
+}
+
+/**
+ * @brief Retrieve the number of remaining items in a CBOR array
+ *
+ * The returned value is undefined when not inside an array or when the
+ * array is of indefinite length.
+ *
+ * @param[in]   value   nanocbor value inside a CBOR array
+ *
+ * @return              number of array items remaining
+ */
+static inline uint32_t
+nanocbor_array_items_remaining(const nanocbor_value_t *value)
+{
+    return nanocbor_container_remaining(value);
+}
+
+/**
+ * @brief Retrieve the number of remaining values in a CBOR map
+ *
+ * The returned value is undefined when not inside a map or when the
+ * container is of indefinite length.
+ *
+ * @param[in]   value   nanocbor value inside a CBOR map
+ *
+ * @return              number of key/value pairs remaining
+ */
+static inline uint32_t
+nanocbor_map_items_remaining(const nanocbor_value_t *value)
+{
+    return nanocbor_container_remaining(value)/2;
 }
 
 /**
