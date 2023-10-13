@@ -398,7 +398,8 @@ static int _decode_half_float(nanocbor_value_t *cvalue, float *value)
         uint32_t significant = tmp & HALF_FRAC_MASK;
         uint32_t exponent = tmp & (HALF_EXP_MASK << HALF_EXP_POS);
 
-        static const uint32_t magic = ((uint32_t)FLOAT_EXP_OFFSET - 1) << FLOAT_EXP_POS;
+        static const uint32_t magic = ((uint32_t)FLOAT_EXP_OFFSET - 1)
+            << FLOAT_EXP_POS;
         static const float *fmagic = (float *)&magic;
 
         if (exponent == 0) {
@@ -483,8 +484,7 @@ static int _enter_container(const nanocbor_value_t *it,
         return NANOCBOR_OK;
     }
 
-    int res = _get_uint64(it, &container->remaining,
-                          NANOCBOR_SIZE_LONG, type);
+    int res = _get_uint64(it, &container->remaining, NANOCBOR_SIZE_LONG, type);
     if (res < 0) {
         return res;
     }
@@ -594,7 +594,8 @@ int nanocbor_get_key_tstr(nanocbor_value_t *start, const char *key,
         const uint8_t *s = NULL;
         size_t s_len = 0;
 
-        if ((res = nanocbor_get_tstr(value, &s, &s_len)) < 0) {
+        res = nanocbor_get_tstr(value, &s, &s_len);
+        if (res < 0) {
             break;
         }
 
@@ -603,7 +604,8 @@ int nanocbor_get_key_tstr(nanocbor_value_t *start, const char *key,
             break;
         }
 
-        if ((res = nanocbor_skip(value)) < 0) {
+        res = nanocbor_skip(value);
+        if (res < 0) {
             break;
         }
     }
