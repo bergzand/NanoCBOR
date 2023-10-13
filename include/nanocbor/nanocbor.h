@@ -27,8 +27,8 @@
  * @author      Koen Zandberg <koen@bergzand.net>
  */
 
-#ifndef NANOCBOR_H
-#define NANOCBOR_H
+#ifndef NANOCBOR_NANOCBOR_H
+#define NANOCBOR_NANOCBOR_H
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -865,5 +865,5 @@ int nanocbor_fmt_decimal_frac(nanocbor_encoder_t *enc, int32_t e, int32_t m);
 }
 #endif
 
-#endif /* NANOCBOR_H */
+#endif /* NANOCBOR_NANOCBOR_H */
 /** @} */
