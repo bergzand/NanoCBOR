@@ -218,6 +218,36 @@ static void test_decode_basic(void)
     CU_ASSERT_EQUAL(mantissa, 27315);
 }
 
+static void _decode_skip_simple(const uint8_t *test_case, size_t test_case_len)
+{
+    nanocbor_value_t decoder;
+    nanocbor_decoder_init(&decoder, test_case, test_case_len);
+    CU_ASSERT_EQUAL(nanocbor_at_end(&decoder), false);
+    int res = nanocbor_skip_simple(&decoder);
+    printf("skip result = %d", res);
+    CU_ASSERT_EQUAL(res, NANOCBOR_OK);
+    CU_ASSERT_EQUAL(nanocbor_at_end(&decoder), true);
+}
+
+static void test_decode_skip(void)
+{
+    static const uint8_t test_uint[] = { 0x00 };
+    _decode_skip_simple(test_uint, sizeof(test_uint));
+    static const uint8_t test_nint[] = { 0x20 };
+    _decode_skip_simple(test_nint, sizeof(test_nint));
+    static const uint8_t test_bstr_empty[] = { 0x40 };
+    _decode_skip_simple(test_bstr_empty, sizeof(test_bstr_empty));
+    static const uint8_t test_bstr[] = { 0x42, 0xAA, 0xBB };
+    _decode_skip_simple(test_bstr, sizeof(test_bstr));
+    static const uint8_t test_tstr[] = { 0x65, 0x68, 0x65, 0x6C, 0x6C, 0x6F };
+    _decode_skip_simple(test_tstr, sizeof(test_tstr));
+
+    static const uint8_t test_float[] = { 0xF9, 0x42, 0x00 };
+    _decode_skip_simple(test_float, sizeof(test_float));
+    static const uint8_t test_simple[] = { 0xF4 };
+    _decode_skip_simple(test_simple, sizeof(test_simple));
+}
+
 const test_t tests_decoder[] = {
     {
         .f = test_decode_none,
@@ -242,6 +272,10 @@ const test_t tests_decoder[] = {
     {
         .f = test_double_tag,
         .n = "CBOR double tag decode test",
+    },
+    {
+        .f = test_decode_skip,
+        .n = "CBOR simple skip test",
     },
     {
         .f = NULL,
