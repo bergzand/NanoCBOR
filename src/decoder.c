@@ -528,9 +528,16 @@ void nanocbor_leave_container(nanocbor_value_t *it, nanocbor_value_t *container)
 
 static int _skip_simple(nanocbor_value_t *it)
 {
+    int type = nanocbor_get_type(it);
     uint64_t tmp = 0;
-    int res = _get_uint64(it, &tmp, NANOCBOR_SIZE_LONG, nanocbor_get_type(it));
-    return _advance_if(it, res);
+    if (type == NANOCBOR_TYPE_BSTR || type == NANOCBOR_TYPE_TSTR) {
+        const uint8_t *tmp = NULL;
+        size_t len = 0;
+        return _get_str(it, &tmp, &len, (uint8_t)type);
+    }
+    int res = _get_uint64(it, &tmp, NANOCBOR_SIZE_LONG, type);
+    res = _advance_if(it, res);
+    return res > 0 ? NANOCBOR_OK : res;
 }
 
 int nanocbor_get_subcbor(nanocbor_value_t *it, const uint8_t **start,
@@ -556,13 +563,8 @@ static int _skip_limited(nanocbor_value_t *it, uint8_t limit)
     int type = nanocbor_get_type(it);
     int res = type;
 
-    if (type == NANOCBOR_TYPE_BSTR || type == NANOCBOR_TYPE_TSTR) {
-        const uint8_t *tmp = NULL;
-        size_t len = 0;
-        res = _get_str(it, &tmp, &len, (uint8_t)type);
-    }
     /* map or array */
-    else if (type == NANOCBOR_TYPE_ARR || type == NANOCBOR_TYPE_MAP) {
+    if (type == NANOCBOR_TYPE_ARR || type == NANOCBOR_TYPE_MAP) {
         nanocbor_value_t recurse;
         res = (type == NANOCBOR_TYPE_MAP ? nanocbor_enter_map(it, &recurse)
                                          : nanocbor_enter_array(it, &recurse));
