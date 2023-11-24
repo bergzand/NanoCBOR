@@ -6,6 +6,32 @@ NanoCBOR is optimized for decoding known CBOR structures while optimizing the fl
 
 The decoder of NanoCBOR should compile to 600-800 bytes on a Cortex-M0+ MCU, depending on whether floating point decoding is required.
 
+## Compiling
+
+Compiling NanoCBOR as is from this repository requires:
+- [Meson] 
+- [Ninja]
+
+Furthermore, the tests make use of [CUnit] as test framework.
+
+All of these can usually be found in the package repository of your Linux distribution.
+
+Building NanoCBOR is a two step process. First a build directory has to be created with the necessary Ninja build files:
+
+```
+meson build
+```
+
+Second step is to compile NanoCBOR:
+
+```
+ninja -c build
+```
+
+This results into a `libnanocbor.so` file inside the `build` directory and binaries for the examples and tests in their respective directories inside the `build` directory
+
+When including NanoCBOR into a custom project, it is usually sufficient to only include the source and header files into the project, the meson build system used in the repo is not mandatory to use.
+
 ## Usage
 
 To achieve the small code size, two patterns are used throughout the decode library.
@@ -76,3 +102,6 @@ On a bare metal ARM platform, `__builtin_bswap64` and `__builtin_bswap32` can be
 
 Open an issue, PR, the usual.
 
+[Meson]: https://mesonbuild.com/
+[Ninja]: https://ninja-build.org/
+[CUnit]: https://cunit.sourceforge.net/
