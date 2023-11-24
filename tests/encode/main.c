@@ -2,11 +2,11 @@
  * SPDX-License-Identifier: CC0-1.0
  */
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
-#include <unistd.h>
 
 #include "nanocbor/nanocbor.h"
 
