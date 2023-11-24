@@ -5,6 +5,8 @@
 #include "nanocbor/nanocbor.h"
 #include "test.h"
 #include <CUnit/CUnit.h>
+#include <stdbool.h>
+#include <stdlib.h>
 
 /* NOLINTBEGIN(cppcoreguidelines-avoid-magic-numbers) */
 
