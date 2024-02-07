@@ -157,6 +157,15 @@ int nanocbor_fmt_int(nanocbor_encoder_t *enc, int64_t num)
     return nanocbor_fmt_uint(enc, (uint64_t)num);
 }
 
+int nanocbor_fmt_simple(nanocbor_encoder_t *enc, uint8_t value)
+{
+    /* Exclude assigned or reserved simple values between 20 and 31 */
+    if (value >= NANOCBOR_SIMPLE_FALSE && value <= NANOCBOR_SIZE_INDEFINITE) {
+        return NANOCBOR_ERR_INVALID_TYPE;
+    }
+    return _fmt_uint64(enc, value, NANOCBOR_MASK_FLOAT);
+}
+
 int nanocbor_fmt_bstr(nanocbor_encoder_t *enc, size_t len)
 {
     return _fmt_uint64(enc, (uint64_t)len, NANOCBOR_MASK_BSTR);
