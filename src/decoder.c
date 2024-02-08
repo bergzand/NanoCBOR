@@ -28,6 +28,9 @@ void nanocbor_decoder_init(nanocbor_value_t *value, const uint8_t *buf,
     value->cur = buf;
     value->end = buf + len;
     value->flags = 0;
+#if NANOCBOR_DECODE_PACKED_ENABLED
+    memset(value->shared_item_tables, 0, sizeof(value->shared_item_tables));
+#endif
 }
 
 static void _advance(nanocbor_value_t *cvalue, unsigned int res)
@@ -294,9 +297,103 @@ int nanocbor_get_decimal_frac(nanocbor_value_t *cvalue, int32_t *e, int32_t *m)
     return res;
 }
 
+static inline int _packed_consume_table(nanocbor_value_t *cvalue, nanocbor_value_t *target)
+{
+    int ret;
+    uint8_t table_size = 0;
+    ret = _get_and_advance_uint8(cvalue, &table_size, NANOCBOR_TYPE_ARR); // todo: use _match_value_exact instead (known array size)
+    if (ret != 1 || table_size != 2 || nanocbor_get_type(cvalue) != NANOCBOR_TYPE_ARR)
+        return NANOCBOR_ERR_INVALID_TYPE; // todo: which error code to return here?
+
+    memcpy(target, cvalue, sizeof(nanocbor_value_t));
+    for (size_t i=0; i<NANOCBOR_DECODE_PACKED_NESTED_TABLES_MAX; i++) {
+        struct nanocbor_packed_table *t = &target->shared_item_tables[i];
+        if (t->start == NULL) {
+            ret = nanocbor_get_subcbor(cvalue, &t->start, &t->len);
+            if (ret != NANOCBOR_OK) {
+                return NANOCBOR_ERR_INVALID_TYPE; // todo: which error code to return here?
+            }
+            // todo: will this break if rump is array? > shouldn't if skip behaves correctly
+            // this should in theory allow to fix leave_container if array inside table -> check for flag, then no-op
+            nanocbor_skip(cvalue);
+            _advance(target, t->len);
+            return NANOCBOR_OK;
+        }
+    }
+    return NANOCBOR_ERR_RECURSION; // todo: which error?
+}
+
+static inline int _packed_follow_reference(nanocbor_value_t *cvalue, nanocbor_value_t *target, uint64_t idx)
+{
+    // int ret;
+    for (size_t i=0; i<NANOCBOR_DECODE_PACKED_NESTED_TABLES_MAX; i++) {
+        struct nanocbor_packed_table *t = &cvalue->shared_item_tables[NANOCBOR_DECODE_PACKED_NESTED_TABLES_MAX-1-i];
+        if (t->start != NULL) {
+            // todo: do we really have to store length in B of each table? > probably yes, also for implicit tables added before decoding!
+            // todo: proper error handling everywhere
+            nanocbor_decoder_init(target, t->start, t->len);
+            uint64_t table_size = 0;
+            _get_and_advance_uint64(target, &table_size, NANOCBOR_TYPE_ARR);
+            if (idx < table_size) {
+                for (size_t j=0; j<idx; j++) {
+                    nanocbor_skip(target);
+                }
+                return NANOCBOR_OK;
+            } else {
+                idx -= table_size;
+            }
+        }
+    }
+    // idx not within current tables
+    return NANOCBOR_ERR_INVALID_TYPE; // todo: which error code to return here?
+}
+
+static inline int _packed_follow(nanocbor_value_t *cvalue, nanocbor_value_t *target)
+{
+    int ret;
+
+    uint64_t tmp = 0;
+    // todo: might break since using API-facing function
+    int ctype = nanocbor_get_type(cvalue);
+    ret = _get_uint64(cvalue, &tmp, NANOCBOR_SIZE_WORD, ctype);
+    // todo: error handling
+
+    /* can't use nanocbor_get_{tag,simple} here to avoid advancing */
+    if (ctype == NANOCBOR_TYPE_TAG) {
+        if (tmp == NANOCBOR_TAG_PACKED_TABLE) {
+            _advance(cvalue, ret);
+            return _packed_consume_table(cvalue, target);
+        }
+        else if (tmp == NANOCBOR_TAG_PACKED_REF_SHARED) {
+            _advance(cvalue, ret);
+            int64_t n;
+            // todo: might break since using API-facing function
+            ret = nanocbor_get_int64(cvalue, &n);
+            if (ret != NANOCBOR_OK)
+                return NANOCBOR_ERR_INVALID_TYPE; // todo: which error code to return here?
+            uint64_t idx = 16 + (n >= 0 ? 2*n : -2*n-1);
+            return _packed_follow_reference(cvalue, target, idx);
+        }
+    }
+    else if (ctype == NANOCBOR_TYPE_FLOAT && tmp < 16) {
+        _advance(cvalue, ret);
+        return _packed_follow_reference(cvalue, target, tmp);
+    }
+    return NANOCBOR_NOT_FOUND;
+}
+
 static int _get_str(nanocbor_value_t *cvalue, const uint8_t **buf, size_t *len,
                     uint8_t type)
 {
+// todo: needs same implementation for _enter_container/get_* (can we use _get_uint64?)
+// todo: recursion count needed for loop detection!
+#if NANOCBOR_DECODE_PACKED_ENABLED
+    nanocbor_value_t followed;
+    if (_packed_follow(cvalue, &followed) == NANOCBOR_OK) {
+        return _get_str(&followed, buf, len, type);
+    }
+#endif
+
     uint64_t tmp = 0;
     int res = _get_uint64(cvalue, &tmp, NANOCBOR_SIZE_SIZET, type);
     *len = tmp;
@@ -327,6 +424,14 @@ int nanocbor_get_tstr(nanocbor_value_t *cvalue, const uint8_t **buf,
 
 int nanocbor_get_null(nanocbor_value_t *cvalue)
 {
+// todo: needs same implementation for _enter_container/get_* (can we use _get_uint64?)
+// todo: recursion count needed for loop detection!
+#if NANOCBOR_DECODE_PACKED_ENABLED
+    nanocbor_value_t followed;
+    if (_packed_follow(cvalue, &followed) == NANOCBOR_OK) {
+        return nanocbor_get_null(&followed);
+    }
+#endif
     return _value_match_exact(cvalue,
                               NANOCBOR_MASK_FLOAT | NANOCBOR_SIMPLE_NULL);
 }
@@ -476,6 +581,15 @@ static int _enter_container(const nanocbor_value_t *it,
 {
     container->end = it->end;
     container->remaining = 0;
+#if NANOCBOR_DECODE_PACKED_ENABLED
+    memcpy(container->shared_item_tables, it->shared_item_tables, sizeof(it->shared_item_tables));
+
+    nanocbor_value_t followed;
+    // todo: discarding const qualifier not very nice
+    if (_packed_follow((nanocbor_value_t *)it, &followed) == NANOCBOR_OK) {
+        return _enter_container(&followed, container, type);
+    }
+#endif
 
     uint8_t value_match = (uint8_t)(((unsigned)type << NANOCBOR_TYPE_OFFSET)
                                     | NANOCBOR_SIZE_INDEFINITE);
@@ -584,6 +698,7 @@ static int _skip_limited(nanocbor_value_t *it, uint8_t limit)
     return res < 0 ? res : NANOCBOR_OK;
 }
 
+// todo: how does nanocbor_skip behave with tags? shouldn't it skip tag content, too?
 int nanocbor_skip(nanocbor_value_t *it)
 {
     return _skip_limited(it, NANOCBOR_RECURSION_MAX);

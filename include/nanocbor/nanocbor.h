@@ -101,6 +101,8 @@ extern "C" {
 #define NANOCBOR_TAG_BIGNUMS_N (0x3) /**< Negative bignum */
 #define NANOCBOR_TAG_DEC_FRAC (0x4) /**< Decimal Fraction */
 #define NANOCBOR_TAG_BIGFLOATS (0x5) /**< Bigfloat */
+#define NANOCBOR_TAG_PACKED_REF_SHARED (0x6) /**< Packed CBOR: reference to shared */
+#define NANOCBOR_TAG_PACKED_TABLE (113) /**< Packed CBOR: table setup */
 /** @} */
 
 /**
@@ -146,7 +148,13 @@ typedef struct nanocbor_value {
     const uint8_t *cur; /**< Current position in the buffer             */
     const uint8_t *end; /**< End of the buffer                          */
     uint64_t remaining; /**< Number of items remaining in the container */
-    uint8_t flags; /**< Flags for decoding hints                   */
+    uint8_t flags;      /**< Flags for decoding hints                   */
+#if NANOCBOR_DECODE_PACKED_ENABLED
+    struct nanocbor_packed_table {
+        const uint8_t *start;   /**< Start of table definition, NULL if non-existent */
+        size_t len;             /**< Length in bytes of table definition*/
+    } shared_item_tables[NANOCBOR_DECODE_PACKED_NESTED_TABLES_MAX];
+#endif
 } nanocbor_value_t;
 
 /**
@@ -485,6 +493,7 @@ int nanocbor_enter_map(const nanocbor_value_t *it, nanocbor_value_t *map);
  */
 void nanocbor_leave_container(nanocbor_value_t *it,
                               nanocbor_value_t *container);
+// todo: return NANOCBOR_OK, if container was actually container?
 
 /**
  * @brief Retrieve a tag as positive uint32_t from the stream
