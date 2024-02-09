@@ -255,6 +255,11 @@ static void test_decode_skip(void)
     static const uint8_t test_simple[] = { 0xF4 };
     _decode_skip(test_simple, sizeof(test_simple), true);
 
+    static const uint8_t test_tag[] = { 0xD8, 0x29, 0x82, 0xF5, 0xF4 };
+    _decode_skip(test_tag, sizeof(test_tag), false);
+    static const uint8_t test_tag_within_array[] = { 0x81, 0xD8, 0x29, 0x80 };
+    _decode_skip(test_tag_within_array, sizeof(test_tag_within_array), false);
+
     static const uint8_t test_array[] = { 0x81, 0xF6 };
     _decode_skip(test_array, sizeof(test_array), false);
     static const uint8_t test_array_nested[] = { 0x81, 0x81, 0xF6 };
