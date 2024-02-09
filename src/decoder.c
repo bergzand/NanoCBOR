@@ -692,6 +692,16 @@ static int _skip_limited(nanocbor_value_t *it, uint8_t limit)
             nanocbor_leave_container(it, &recurse);
         }
     }
+    /* tag */
+    else if (type == NANOCBOR_TYPE_TAG) {
+        uint64_t tmp = 0;
+        int res = _get_uint64(it, &tmp, NANOCBOR_SIZE_WORD, NANOCBOR_TYPE_TAG);
+        if (res >= 0) {
+            it->cur += res;
+            res = _skip_limited(it, limit - 1);
+        }
+    }
+    /* other basic types */
     else if (type >= 0) {
         res = _skip_simple(it);
     }
