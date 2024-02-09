@@ -641,6 +641,16 @@ static int _skip_limited(nanocbor_value_t *it, uint8_t limit)
             skip += len - 1;
             continue;
         }
+        else if (type == NANOCBOR_TYPE_TAG) {
+            uint64_t tmp = 0;
+            int res = _get_uint64(it, &tmp, NANOCBOR_SIZE_WORD, type);
+            if (res < 0) {
+                return res;
+            }
+            _advance(it, res);
+            /* do not decrement skip as tag content still needs to be skipped, too */
+            continue;
+        }
 
         res = _skip_simple(it);
         if (res < 0) {
