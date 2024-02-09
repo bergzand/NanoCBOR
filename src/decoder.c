@@ -33,6 +33,19 @@ void nanocbor_decoder_init(nanocbor_value_t *value, const uint8_t *buf,
 #endif
 }
 
+#if NANOCBOR_DECODE_PACKED_ENABLED
+// todo: maybe, instead of extra function, change nanocbor_decoder_init or new nanocbor_packed_decoder_init
+void nanocbor_decoder_set_packed_support(nanocbor_value_t *value, bool enable)
+{
+    if (enable) {
+        value->flags |= NANOCBOR_DECODER_FLAG_PACKED_SUPPORT;
+    }
+    else {
+        value->flags &= ~NANOCBOR_DECODER_FLAG_PACKED_SUPPORT;
+    }
+}
+#endif
+
 static void _advance(nanocbor_value_t *cvalue, unsigned int res)
 {
     cvalue->cur += res;
@@ -186,7 +199,7 @@ static inline int _packed_consume_table(nanocbor_value_t *cvalue, nanocbor_value
     if (ret != 1 || table_size != 2 || nanocbor_get_type(cvalue) != NANOCBOR_TYPE_ARR)
         return NANOCBOR_ERR_INVALID_TYPE; // todo: which error code to return here?
 
-    memcpy(target, cvalue, sizeof(nanocbor_value_t));
+    *target = *cvalue;
     for (size_t i=0; i<NANOCBOR_DECODE_PACKED_NESTED_TABLES_MAX; i++) {
         struct nanocbor_packed_table *t = &target->shared_item_tables[i];
         if (t->start == NULL) {
@@ -204,15 +217,16 @@ static inline int _packed_consume_table(nanocbor_value_t *cvalue, nanocbor_value
     return NANOCBOR_ERR_RECURSION; // todo: which error?
 }
 
-static inline int _packed_follow_reference(nanocbor_value_t *cvalue, nanocbor_value_t *target, uint64_t idx)
+static inline int _packed_follow_reference(const nanocbor_value_t *cvalue, nanocbor_value_t *target, uint64_t idx)
 {
     // int ret;
     for (size_t i=0; i<NANOCBOR_DECODE_PACKED_NESTED_TABLES_MAX; i++) {
-        struct nanocbor_packed_table *t = &cvalue->shared_item_tables[NANOCBOR_DECODE_PACKED_NESTED_TABLES_MAX-1-i];
+        const struct nanocbor_packed_table *t = &cvalue->shared_item_tables[NANOCBOR_DECODE_PACKED_NESTED_TABLES_MAX-1-i];
         if (t->start != NULL) {
             // todo: do we really have to store length in B of each table? > probably yes, also for implicit tables added before decoding!
             // todo: proper error handling everywhere
             nanocbor_decoder_init(target, t->start, t->len);
+            nanocbor_decoder_set_packed_support(target, true);
             target->flags |= NANOCBOR_DECODER_FLAG_SHARED;
             uint64_t table_size = 0;
             _get_and_advance_uint64(target, &table_size, NANOCBOR_TYPE_ARR);
@@ -232,8 +246,11 @@ static inline int _packed_follow_reference(nanocbor_value_t *cvalue, nanocbor_va
 
 static inline int _packed_follow(nanocbor_value_t *cvalue, nanocbor_value_t *target)
 {
-    int ret;
+    if ((cvalue->flags & NANOCBOR_DECODER_FLAG_PACKED_SUPPORT) == 0) {
+        return NANOCBOR_NOT_FOUND;
+    }
 
+    int ret;
     uint64_t tmp = 0;
     // todo: might break since using API-facing function
     int ctype = nanocbor_get_type(cvalue);
@@ -596,8 +613,11 @@ static int _enter_container(const nanocbor_value_t *it,
         container->flags |= (followed.flags & NANOCBOR_DECODER_FLAG_SHARED) ? NANOCBOR_DECODER_FLAG_SHARED : 0;
         return res;
     }
-#endif
 
+    container->flags = (it->flags & NANOCBOR_DECODER_FLAG_PACKED_SUPPORT) ? NANOCBOR_DECODER_FLAG_PACKED_SUPPORT : 0;
+#elif
+    container->flags = 0;
+#endif
     container->end = it->end;
     container->remaining = 0;
 
@@ -606,7 +626,7 @@ static int _enter_container(const nanocbor_value_t *it,
 
     /* Not using _value_match_exact here to keep *it const */
     if (!_over_end(it) && *it->cur == value_match) {
-        container->flags = NANOCBOR_DECODER_FLAG_INDEFINITE
+        container->flags |= NANOCBOR_DECODER_FLAG_INDEFINITE
             | NANOCBOR_DECODER_FLAG_CONTAINER;
         container->cur = it->cur + 1;
         return NANOCBOR_OK;
@@ -616,7 +636,7 @@ static int _enter_container(const nanocbor_value_t *it,
     if (res < 0) {
         return res;
     }
-    container->flags = NANOCBOR_DECODER_FLAG_CONTAINER;
+    container->flags |= NANOCBOR_DECODER_FLAG_CONTAINER;
     container->cur = it->cur + res;
     return NANOCBOR_OK;
 }

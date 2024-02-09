@@ -236,6 +236,11 @@ struct nanocbor_encoder {
  * @brief decoder value is at the top level of a packed CBOR shared item
  */
 #define NANOCBOR_DECODER_FLAG_SHARED (0x04U)
+
+/**
+ * @brief decoder should transparently decode packed CBOR structures
+ */
+#define NANOCBOR_DECODER_FLAG_PACKED_SUPPORT (0x08U)
 /** @} */
 
 /**
@@ -255,6 +260,16 @@ struct nanocbor_encoder {
  */
 void nanocbor_decoder_init(nanocbor_value_t *value, const uint8_t *buf,
                            size_t len);
+
+/**
+ * @brief Set transparent decoding support for CBOR packed.
+ *
+ * Disabled by default.
+ *
+ * @param[in]   value   decoder value context
+ * @param[in]   enable  whether to enable transparent CBOR packed support
+ */
+void nanocbor_decoder_set_packed_support(nanocbor_value_t *value, bool enable);
 
 /**
  * @brief Retrieve the type of the CBOR value at the current position
