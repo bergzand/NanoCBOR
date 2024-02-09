@@ -11,6 +11,7 @@
 #include "test.h"
 
 extern const test_t tests_decoder[];
+extern const test_t tests_decoder_packed[];
 extern const test_t tests_encoder[];
 
 static int add_tests(CU_pSuite pSuite, const test_t *tests)
@@ -38,6 +39,13 @@ int main()
         return CU_get_error();
     }
     add_tests(pSuite, tests_decoder);
+
+    pSuite = CU_add_suite("Nanocbor decode packed", NULL, NULL);
+    if (NULL == pSuite) {
+        CU_cleanup_registry();
+        return CU_get_error();
+    }
+    add_tests(pSuite, tests_decoder_packed);
 
     pSuite = CU_add_suite("Nanocbor encode", NULL, NULL);
     if (NULL == pSuite) {

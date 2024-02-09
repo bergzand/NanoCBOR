@@ -727,6 +727,7 @@ int nanocbor_skip(nanocbor_value_t *it)
     return _skip_limited(it, NANOCBOR_RECURSION_MAX);
 }
 
+// todo: start could be const?
 int nanocbor_get_key_tstr(nanocbor_value_t *start, const char *key,
                           nanocbor_value_t *value)
 {

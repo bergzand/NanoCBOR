@@ -1,5 +1,6 @@
 automated_sources = [
   'test_decoder.c',
+  'test_decoder_packed.c',
   'test_encoder.c',
   'main.c'
 ]
