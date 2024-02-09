@@ -274,7 +274,7 @@ static void test_decode_skip(void)
 
 static void test_decode_packed(void)
 {
-    nanocbor_value_t val,val2;
+    nanocbor_value_t val, val2, val3, val4;
     const uint8_t *buf;
     size_t len;
 
@@ -348,7 +348,6 @@ static void test_decode_packed(void)
     CU_ASSERT_EQUAL(nanocbor_at_end(&val), true);
 
     // 113([[null, 113([["a"], simple(0)])], simple(1)])
-    // todo: broken, probably because tags are not skipped including content!
     static const uint8_t nested_indirection[] = { 0xD8, 0x71, 0x82, 0x82, 0xF6, 0xD8, 0x71, 0x82, 0x81, 0x61, 0x61, 0xE0, 0xE1 };
     nanocbor_decoder_init(&val, nested_indirection, sizeof(nested_indirection));
     CU_ASSERT_EQUAL(nanocbor_get_tstr(&val, &buf, &len), NANOCBOR_OK);
@@ -356,10 +355,56 @@ static void test_decode_packed(void)
     CU_ASSERT_NSTRING_EQUAL(buf, "a", len);
     CU_ASSERT_EQUAL(nanocbor_at_end(&val), true);
 
-    // // 113([["a", "b"], [{simple(0): simple(1)}, {simple(1): simple(0)}]])
-    // static const uint8_t map[] = { 0xD8, 0x71, 0x82, 0x82, 0x61, 0x61, 0x61, 0x62, 0x82, 0xA1, 0xE0, 0xE1, 0xA1, 0xE1, 0xE0 };
-    // // 32(113([["a"], simple(0)]))
-    // static const uint8_t within_tag[] = { 0xD8, 0x20, 0xD8, 0x71, 0x82, 0x81, 0x61, 0x61, 0xE0 };
+    // 113([["a", "b"], [{simple(0): simple(1)}, {simple(1): simple(0)}]])
+    static const uint8_t map[] = { 0xD8, 0x71, 0x82, 0x82, 0x61, 0x61, 0x61, 0x62, 0x82, 0xA1, 0xE0, 0xE1, 0xA1, 0xE1, 0xE0 };
+    nanocbor_decoder_init(&val, map, sizeof(map));
+    CU_ASSERT_EQUAL(nanocbor_enter_array(&val, &val2), NANOCBOR_OK);
+    CU_ASSERT_EQUAL(nanocbor_array_items_remaining(&val2), 2);
+    CU_ASSERT_EQUAL(nanocbor_enter_map(&val2, &val3), NANOCBOR_OK);
+    CU_ASSERT_EQUAL(nanocbor_map_items_remaining(&val3), 1);
+    CU_ASSERT_EQUAL(nanocbor_get_key_tstr(&val3, "a", &val4), NANOCBOR_OK);
+    CU_ASSERT_EQUAL(nanocbor_get_tstr(&val4, &buf, &len), NANOCBOR_OK);
+    CU_ASSERT_EQUAL(len, 1);
+    CU_ASSERT_NSTRING_EQUAL(buf, "b", len);
+    // nanocbor_leave_container(&val2, &val3);
+    // todo: above breaks as leave_container does not check being at the end of it, also below
+    nanocbor_leave_container(&val2, &val4);
+    CU_ASSERT_EQUAL(nanocbor_enter_map(&val2, &val3), NANOCBOR_OK);
+    CU_ASSERT_EQUAL(nanocbor_map_items_remaining(&val3), 1);
+    CU_ASSERT_EQUAL(nanocbor_get_key_tstr(&val3, "b", &val4), NANOCBOR_OK);
+    CU_ASSERT_EQUAL(nanocbor_get_tstr(&val4, &buf, &len), NANOCBOR_OK);
+    CU_ASSERT_EQUAL(len, 1);
+    CU_ASSERT_NSTRING_EQUAL(buf, "a", len);
+    nanocbor_leave_container(&val2, &val4);
+    nanocbor_leave_container(&val, &val2);
+    CU_ASSERT_EQUAL(nanocbor_at_end(&val), true);
+
+    // 41(113([["a"], [simple(0)]]))
+    uint32_t tag;
+    static const uint8_t within_tag[] = { 0xD8, 0x29, 0xD8, 0x71, 0x82, 0x81, 0x61, 0x61, 0x81, 0xE0 };
+    nanocbor_decoder_init(&val, within_tag, sizeof(within_tag));
+    CU_ASSERT_EQUAL(nanocbor_get_tag(&val, &tag), NANOCBOR_OK);
+    CU_ASSERT_EQUAL(tag, 41);
+    CU_ASSERT_EQUAL(nanocbor_enter_array(&val, &val2), NANOCBOR_OK);
+    CU_ASSERT_EQUAL(nanocbor_array_items_remaining(&val2), 1);
+    CU_ASSERT_EQUAL(nanocbor_get_tstr(&val2, &buf, &len), NANOCBOR_OK);
+    CU_ASSERT_EQUAL(len, 1);
+    CU_ASSERT_NSTRING_EQUAL(buf, "a", len);
+    CU_ASSERT_EQUAL(nanocbor_at_end(&val2), true);
+    nanocbor_leave_container(&val, &val2);
+    CU_ASSERT_EQUAL(nanocbor_at_end(&val), true);
+
+    // 113([[["a"]], simple(0)])
+    static const uint8_t shared_container[] = { 0xD8, 0x71, 0x82, 0x81, 0x81, 0x61, 0x61, 0xE0 };
+    nanocbor_decoder_init(&val, shared_container, sizeof(shared_container));
+    CU_ASSERT_EQUAL(nanocbor_enter_array(&val, &val2), NANOCBOR_OK);
+    CU_ASSERT_EQUAL(nanocbor_array_items_remaining(&val2), 1);
+    CU_ASSERT_EQUAL(nanocbor_get_tstr(&val2, &buf, &len), NANOCBOR_OK);
+    CU_ASSERT_EQUAL(len, 1);
+    CU_ASSERT_NSTRING_EQUAL(buf, "a", len);
+    CU_ASSERT_EQUAL(nanocbor_at_end(&val2), true);
+    nanocbor_leave_container(&val, &val2);
+    CU_ASSERT_EQUAL(nanocbor_at_end(&val), true);
 
     // // 113([[], simple(0))
     // static const uint8_t undefined_ref[] = { 0xD8, 0x71, 0x82, 0x80, 0xE0 };

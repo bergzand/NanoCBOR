@@ -178,6 +178,91 @@ static int _get_and_advance_uint64(nanocbor_value_t *cvalue, uint64_t *value,
     return _advance_if(cvalue, res);
 }
 
+static inline int _packed_consume_table(nanocbor_value_t *cvalue, nanocbor_value_t *target)
+{
+    int ret;
+    uint8_t table_size = 0;
+    ret = _get_and_advance_uint8(cvalue, &table_size, NANOCBOR_TYPE_ARR); // todo: use _match_value_exact instead (known array size)
+    if (ret != 1 || table_size != 2 || nanocbor_get_type(cvalue) != NANOCBOR_TYPE_ARR)
+        return NANOCBOR_ERR_INVALID_TYPE; // todo: which error code to return here?
+
+    memcpy(target, cvalue, sizeof(nanocbor_value_t));
+    for (size_t i=0; i<NANOCBOR_DECODE_PACKED_NESTED_TABLES_MAX; i++) {
+        struct nanocbor_packed_table *t = &target->shared_item_tables[i];
+        if (t->start == NULL) {
+            ret = nanocbor_get_subcbor(cvalue, &t->start, &t->len);
+            if (ret != NANOCBOR_OK) {
+                return NANOCBOR_ERR_INVALID_TYPE; // todo: which error code to return here?
+            }
+            // todo: will this break if rump is array? > shouldn't if skip behaves correctly
+            // this should in theory allow to fix leave_container if array inside table -> check for flag, then no-op
+            nanocbor_skip(cvalue);
+            _advance(target, t->len);
+            return NANOCBOR_OK;
+        }
+    }
+    return NANOCBOR_ERR_RECURSION; // todo: which error?
+}
+
+static inline int _packed_follow_reference(nanocbor_value_t *cvalue, nanocbor_value_t *target, uint64_t idx)
+{
+    // int ret;
+    for (size_t i=0; i<NANOCBOR_DECODE_PACKED_NESTED_TABLES_MAX; i++) {
+        struct nanocbor_packed_table *t = &cvalue->shared_item_tables[NANOCBOR_DECODE_PACKED_NESTED_TABLES_MAX-1-i];
+        if (t->start != NULL) {
+            // todo: do we really have to store length in B of each table? > probably yes, also for implicit tables added before decoding!
+            // todo: proper error handling everywhere
+            nanocbor_decoder_init(target, t->start, t->len);
+            uint64_t table_size = 0;
+            _get_and_advance_uint64(target, &table_size, NANOCBOR_TYPE_ARR);
+            if (idx < table_size) {
+                for (size_t j=0; j<idx; j++) {
+                    nanocbor_skip(target);
+                }
+                return NANOCBOR_OK;
+            } else {
+                idx -= table_size;
+            }
+        }
+    }
+    // idx not within current tables
+    return NANOCBOR_ERR_INVALID_TYPE; // todo: which error code to return here?
+}
+
+static inline int _packed_follow(nanocbor_value_t *cvalue, nanocbor_value_t *target)
+{
+    int ret;
+
+    uint64_t tmp = 0;
+    // todo: might break since using API-facing function
+    int ctype = nanocbor_get_type(cvalue);
+    ret = _get_uint64(cvalue, &tmp, NANOCBOR_SIZE_WORD, ctype);
+    // todo: error handling
+
+    /* can't use nanocbor_get_{tag,simple} here to avoid advancing */
+    if (ctype == NANOCBOR_TYPE_TAG) {
+        if (tmp == NANOCBOR_TAG_PACKED_TABLE) {
+            _advance(cvalue, ret);
+            return _packed_consume_table(cvalue, target);
+        }
+        else if (tmp == NANOCBOR_TAG_PACKED_REF_SHARED) {
+            _advance(cvalue, ret);
+            int64_t n;
+            // todo: might break since using API-facing function
+            ret = nanocbor_get_int64(cvalue, &n);
+            if (ret != NANOCBOR_OK)
+                return NANOCBOR_ERR_INVALID_TYPE; // todo: which error code to return here?
+            uint64_t idx = 16 + (n >= 0 ? 2*n : -2*n-1);
+            return _packed_follow_reference(cvalue, target, idx);
+        }
+    }
+    else if (ctype == NANOCBOR_TYPE_FLOAT && tmp < 16) {
+        _advance(cvalue, ret);
+        return _packed_follow_reference(cvalue, target, tmp);
+    }
+    return NANOCBOR_NOT_FOUND;
+}
+
 int nanocbor_get_uint8(nanocbor_value_t *cvalue, uint8_t *value)
 {
     return _get_and_advance_uint8(cvalue, value, NANOCBOR_TYPE_UINT);
@@ -262,6 +347,13 @@ int nanocbor_get_int64(nanocbor_value_t *cvalue, int64_t *value)
 
 int nanocbor_get_tag(nanocbor_value_t *cvalue, uint32_t *tag)
 {
+#if NANOCBOR_DECODE_PACKED_ENABLED
+    nanocbor_value_t followed;
+    if (_packed_follow(cvalue, &followed) == NANOCBOR_OK) {
+        return nanocbor_get_tag(&followed, tag);
+    }
+#endif
+
     uint64_t tmp = 0;
     int res = _get_uint64(cvalue, &tmp, NANOCBOR_SIZE_WORD, NANOCBOR_TYPE_TAG);
 
@@ -295,91 +387,6 @@ int nanocbor_get_decimal_frac(nanocbor_value_t *cvalue, int32_t *e, int32_t *m)
     }
 
     return res;
-}
-
-static inline int _packed_consume_table(nanocbor_value_t *cvalue, nanocbor_value_t *target)
-{
-    int ret;
-    uint8_t table_size = 0;
-    ret = _get_and_advance_uint8(cvalue, &table_size, NANOCBOR_TYPE_ARR); // todo: use _match_value_exact instead (known array size)
-    if (ret != 1 || table_size != 2 || nanocbor_get_type(cvalue) != NANOCBOR_TYPE_ARR)
-        return NANOCBOR_ERR_INVALID_TYPE; // todo: which error code to return here?
-
-    memcpy(target, cvalue, sizeof(nanocbor_value_t));
-    for (size_t i=0; i<NANOCBOR_DECODE_PACKED_NESTED_TABLES_MAX; i++) {
-        struct nanocbor_packed_table *t = &target->shared_item_tables[i];
-        if (t->start == NULL) {
-            ret = nanocbor_get_subcbor(cvalue, &t->start, &t->len);
-            if (ret != NANOCBOR_OK) {
-                return NANOCBOR_ERR_INVALID_TYPE; // todo: which error code to return here?
-            }
-            // todo: will this break if rump is array? > shouldn't if skip behaves correctly
-            // this should in theory allow to fix leave_container if array inside table -> check for flag, then no-op
-            nanocbor_skip(cvalue);
-            _advance(target, t->len);
-            return NANOCBOR_OK;
-        }
-    }
-    return NANOCBOR_ERR_RECURSION; // todo: which error?
-}
-
-static inline int _packed_follow_reference(nanocbor_value_t *cvalue, nanocbor_value_t *target, uint64_t idx)
-{
-    // int ret;
-    for (size_t i=0; i<NANOCBOR_DECODE_PACKED_NESTED_TABLES_MAX; i++) {
-        struct nanocbor_packed_table *t = &cvalue->shared_item_tables[NANOCBOR_DECODE_PACKED_NESTED_TABLES_MAX-1-i];
-        if (t->start != NULL) {
-            // todo: do we really have to store length in B of each table? > probably yes, also for implicit tables added before decoding!
-            // todo: proper error handling everywhere
-            nanocbor_decoder_init(target, t->start, t->len);
-            uint64_t table_size = 0;
-            _get_and_advance_uint64(target, &table_size, NANOCBOR_TYPE_ARR);
-            if (idx < table_size) {
-                for (size_t j=0; j<idx; j++) {
-                    nanocbor_skip(target);
-                }
-                return NANOCBOR_OK;
-            } else {
-                idx -= table_size;
-            }
-        }
-    }
-    // idx not within current tables
-    return NANOCBOR_ERR_INVALID_TYPE; // todo: which error code to return here?
-}
-
-static inline int _packed_follow(nanocbor_value_t *cvalue, nanocbor_value_t *target)
-{
-    int ret;
-
-    uint64_t tmp = 0;
-    // todo: might break since using API-facing function
-    int ctype = nanocbor_get_type(cvalue);
-    ret = _get_uint64(cvalue, &tmp, NANOCBOR_SIZE_WORD, ctype);
-    // todo: error handling
-
-    /* can't use nanocbor_get_{tag,simple} here to avoid advancing */
-    if (ctype == NANOCBOR_TYPE_TAG) {
-        if (tmp == NANOCBOR_TAG_PACKED_TABLE) {
-            _advance(cvalue, ret);
-            return _packed_consume_table(cvalue, target);
-        }
-        else if (tmp == NANOCBOR_TAG_PACKED_REF_SHARED) {
-            _advance(cvalue, ret);
-            int64_t n;
-            // todo: might break since using API-facing function
-            ret = nanocbor_get_int64(cvalue, &n);
-            if (ret != NANOCBOR_OK)
-                return NANOCBOR_ERR_INVALID_TYPE; // todo: which error code to return here?
-            uint64_t idx = 16 + (n >= 0 ? 2*n : -2*n-1);
-            return _packed_follow_reference(cvalue, target, idx);
-        }
-    }
-    else if (ctype == NANOCBOR_TYPE_FLOAT && tmp < 16) {
-        _advance(cvalue, ret);
-        return _packed_follow_reference(cvalue, target, tmp);
-    }
-    return NANOCBOR_NOT_FOUND;
 }
 
 static int _get_str(nanocbor_value_t *cvalue, const uint8_t **buf, size_t *len,
