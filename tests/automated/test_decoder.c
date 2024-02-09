@@ -406,6 +406,29 @@ static void test_decode_packed(void)
     nanocbor_leave_container(&val, &val2);
     CU_ASSERT_EQUAL(nanocbor_at_end(&val), true);
 
+    // 113([[[["a"], ["b"]]], simple(0)])
+    static const uint8_t shared_container_nested[] = { 0xD8, 0x71, 0x82, 0x81, 0x82, 0x81, 0x61, 0x61, 0x81, 0x61, 0x62, 0xE0 };
+    nanocbor_decoder_init(&val, shared_container_nested, sizeof(shared_container_nested));
+    CU_ASSERT_EQUAL(nanocbor_enter_array(&val, &val2), NANOCBOR_OK);
+    CU_ASSERT_EQUAL(nanocbor_array_items_remaining(&val2), 2);
+    CU_ASSERT_EQUAL(nanocbor_enter_array(&val2, &val3), NANOCBOR_OK);
+    CU_ASSERT_EQUAL(nanocbor_array_items_remaining(&val3), 1);
+    CU_ASSERT_EQUAL(nanocbor_get_tstr(&val3, &buf, &len), NANOCBOR_OK);
+    CU_ASSERT_EQUAL(len, 1);
+    CU_ASSERT_NSTRING_EQUAL(buf, "a", len);
+    CU_ASSERT_EQUAL(nanocbor_at_end(&val3), true);
+    nanocbor_leave_container(&val2, &val3);
+    CU_ASSERT_EQUAL(nanocbor_enter_array(&val2, &val3), NANOCBOR_OK);
+    CU_ASSERT_EQUAL(nanocbor_array_items_remaining(&val3), 1);
+    CU_ASSERT_EQUAL(nanocbor_get_tstr(&val3, &buf, &len), NANOCBOR_OK);
+    CU_ASSERT_EQUAL(len, 1);
+    CU_ASSERT_NSTRING_EQUAL(buf, "b", len);
+    CU_ASSERT_EQUAL(nanocbor_at_end(&val3), true);
+    nanocbor_leave_container(&val2, &val3);
+    CU_ASSERT_EQUAL(nanocbor_at_end(&val2), true);
+    nanocbor_leave_container(&val, &val2);
+    CU_ASSERT_EQUAL(nanocbor_at_end(&val), true);
+
     // // 113([[], simple(0))
     // static const uint8_t undefined_ref[] = { 0xD8, 0x71, 0x82, 0x80, 0xE0 };
     // // 113([[simple(0)], simple(0)])

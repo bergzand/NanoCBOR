@@ -102,7 +102,7 @@ extern "C" {
 #define NANOCBOR_TAG_DEC_FRAC (0x4) /**< Decimal Fraction */
 #define NANOCBOR_TAG_BIGFLOATS (0x5) /**< Bigfloat */
 #define NANOCBOR_TAG_PACKED_REF_SHARED (0x6) /**< Packed CBOR: reference to shared */
-#define NANOCBOR_TAG_PACKED_TABLE (113) /**< Packed CBOR: table setup */
+#define NANOCBOR_TAG_PACKED_TABLE (0x71) /**< Packed CBOR: table setup */
 /** @} */
 
 /**
@@ -231,6 +231,11 @@ struct nanocbor_encoder {
  * @brief decoder value is inside an indefinite length container
  */
 #define NANOCBOR_DECODER_FLAG_INDEFINITE (0x02U)
+
+/**
+ * @brief decoder value is at the top level of a packed CBOR shared item
+ */
+#define NANOCBOR_DECODER_FLAG_SHARED (0x04U)
 /** @} */
 
 /**

@@ -213,6 +213,7 @@ static inline int _packed_follow_reference(nanocbor_value_t *cvalue, nanocbor_va
             // todo: do we really have to store length in B of each table? > probably yes, also for implicit tables added before decoding!
             // todo: proper error handling everywhere
             nanocbor_decoder_init(target, t->start, t->len);
+            target->flags |= NANOCBOR_DECODER_FLAG_SHARED;
             uint64_t table_size = 0;
             _get_and_advance_uint64(target, &table_size, NANOCBOR_TYPE_ARR);
             if (idx < table_size) {
@@ -239,10 +240,9 @@ static inline int _packed_follow(nanocbor_value_t *cvalue, nanocbor_value_t *tar
     ret = _get_uint64(cvalue, &tmp, NANOCBOR_SIZE_WORD, ctype);
     // todo: error handling
 
-    /* can't use nanocbor_get_{tag,simple} here to avoid advancing */
     if (ctype == NANOCBOR_TYPE_TAG) {
         if (tmp == NANOCBOR_TAG_PACKED_TABLE) {
-            _advance(cvalue, ret);
+            _advance(cvalue, ret); // todo: should be broken, as decrements counter for cvalue->remaining, also below -> test & fix
             return _packed_consume_table(cvalue, target);
         }
         else if (tmp == NANOCBOR_TAG_PACKED_REF_SHARED) {
@@ -586,17 +586,20 @@ int nanocbor_get_double(nanocbor_value_t *cvalue, double *value)
 static int _enter_container(const nanocbor_value_t *it,
                             nanocbor_value_t *container, uint8_t type)
 {
-    container->end = it->end;
-    container->remaining = 0;
 #if NANOCBOR_DECODE_PACKED_ENABLED
     memcpy(container->shared_item_tables, it->shared_item_tables, sizeof(it->shared_item_tables));
 
     nanocbor_value_t followed;
     // todo: discarding const qualifier not very nice
     if (_packed_follow((nanocbor_value_t *)it, &followed) == NANOCBOR_OK) {
-        return _enter_container(&followed, container, type);
+        int res = _enter_container(&followed, container, type);
+        container->flags |= (followed.flags & NANOCBOR_DECODER_FLAG_SHARED) ? NANOCBOR_DECODER_FLAG_SHARED : 0;
+        return res;
     }
 #endif
+
+    container->end = it->end;
+    container->remaining = 0;
 
     uint8_t value_match = (uint8_t)(((unsigned)type << NANOCBOR_TYPE_OFFSET)
                                     | NANOCBOR_SIZE_INDEFINITE);
@@ -636,6 +639,9 @@ int nanocbor_enter_map(const nanocbor_value_t *it, nanocbor_value_t *map)
 
 void nanocbor_leave_container(nanocbor_value_t *it, nanocbor_value_t *container)
 {
+    if (container->flags & NANOCBOR_DECODER_FLAG_SHARED) {
+        return;
+    }
     if (it->remaining) {
         it->remaining--;
     }
