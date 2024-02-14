@@ -34,15 +34,11 @@ void nanocbor_decoder_init(nanocbor_value_t *value, const uint8_t *buf,
 }
 
 #if NANOCBOR_DECODE_PACKED_ENABLED
-// todo: maybe, instead of extra function, change nanocbor_decoder_init or new nanocbor_packed_decoder_init
-void nanocbor_decoder_set_packed_support(nanocbor_value_t *value, bool enable)
+void nanocbor_decoder_init_packed(nanocbor_value_t *value, const uint8_t *buf,
+                           size_t len)
 {
-    if (enable) {
-        value->flags |= NANOCBOR_DECODER_FLAG_PACKED_SUPPORT;
-    }
-    else {
-        value->flags &= ~NANOCBOR_DECODER_FLAG_PACKED_SUPPORT;
-    }
+    nanocbor_decoder_init(value, buf, len);
+    value->flags = NANOCBOR_DECODER_FLAG_PACKED_SUPPORT;
 }
 #endif
 
@@ -191,6 +187,11 @@ static int _get_and_advance_uint64(nanocbor_value_t *cvalue, uint64_t *value,
     return _advance_if(cvalue, res);
 }
 
+static inline bool _packed_enabled(const nanocbor_value_t *value)
+{
+    return NANOCBOR_DECODE_PACKED_ENABLED && (value->flags & NANOCBOR_DECODER_FLAG_PACKED_SUPPORT) != 0;
+}
+
 static inline int _packed_consume_table(nanocbor_value_t *cvalue, nanocbor_value_t *target)
 {
     int ret;
@@ -226,8 +227,7 @@ static inline int _packed_follow_reference(const nanocbor_value_t *cvalue, nanoc
         if (t->start != NULL) {
             // todo: do we really have to store length in B of each table? > probably yes, also for implicit tables added before decoding!
             // todo: proper error handling everywhere
-            nanocbor_decoder_init(target, t->start, t->len);
-            nanocbor_decoder_set_packed_support(target, true);
+            nanocbor_decoder_init_packed(target, t->start, t->len);
             target->flags |= NANOCBOR_DECODER_FLAG_SHARED;
             uint64_t table_size = 0;
             _get_and_advance_uint64(target, &table_size, NANOCBOR_TYPE_ARR);
@@ -247,7 +247,7 @@ static inline int _packed_follow_reference(const nanocbor_value_t *cvalue, nanoc
 
 static inline int _packed_follow(nanocbor_value_t *cvalue, nanocbor_value_t *target)
 {
-    if ((cvalue->flags & NANOCBOR_DECODER_FLAG_PACKED_SUPPORT) == 0) {
+    if (!_packed_enabled(cvalue)) {
         return NANOCBOR_NOT_FOUND;
     }
 
@@ -604,24 +604,26 @@ int nanocbor_get_double(nanocbor_value_t *cvalue, double *value)
 static int _enter_container(const nanocbor_value_t *it,
                             nanocbor_value_t *container, uint8_t type)
 {
-#if NANOCBOR_DECODE_PACKED_ENABLED
-    memcpy(container->shared_item_tables, it->shared_item_tables, sizeof(it->shared_item_tables));
+    if (_packed_enabled(it)) {
+        memcpy(container->shared_item_tables, it->shared_item_tables, sizeof(it->shared_item_tables));
 
-    nanocbor_value_t followed;
-    // todo: discarding const qualifier not nice -> same will happen for nanocbor_get_type
-    // two options:
-    // - change function signature
-    // - keep it const and skip in leave_container instead of looking at container->curr, would need additional internal copy of it for _packed_follow
-    if (_packed_follow((nanocbor_value_t *)it, &followed) == NANOCBOR_OK) {
-        int res = _enter_container(&followed, container, type);
-        container->flags |= (followed.flags & NANOCBOR_DECODER_FLAG_SHARED) ? NANOCBOR_DECODER_FLAG_SHARED : 0;
-        return res;
+        nanocbor_value_t tmp = *it;
+        nanocbor_value_t followed;
+        // todo: discarding const qualifier not nice -> same will happen for nanocbor_get_type
+        // two options:
+        // - change function signature
+        // - keep it const and skip in leave_container instead of looking at container->curr, would need additional internal copy of it for _packed_follow
+        if (_packed_follow(&tmp, &followed) == NANOCBOR_OK) {
+            int res = _enter_container(&followed, container, type);
+            container->flags |= (followed.flags & NANOCBOR_DECODER_FLAG_SHARED) ? NANOCBOR_DECODER_FLAG_SHARED : 0;
+            return res;
+        }
+
+        container->flags = NANOCBOR_DECODER_FLAG_PACKED_SUPPORT;
     }
-
-    container->flags = (it->flags & NANOCBOR_DECODER_FLAG_PACKED_SUPPORT) ? NANOCBOR_DECODER_FLAG_PACKED_SUPPORT : 0;
-#elif
-    container->flags = 0;
-#endif
+    else {
+        container->flags = 0;
+    }
     container->end = it->end;
     container->remaining = 0;
 
@@ -663,14 +665,14 @@ int nanocbor_enter_map(const nanocbor_value_t *it, nanocbor_value_t *map)
 
 int nanocbor_leave_container(nanocbor_value_t *it, nanocbor_value_t *container)
 {
-    if (container->flags & NANOCBOR_DECODER_FLAG_SHARED) {
-        return;
-    }
     /* check `container` to be a valid, fully consumed container that is plausible to have been entered from `it` */
-    if (!nanocbor_in_container(container) ||
-        !nanocbor_at_end(container) ||
-        container->cur <= it->cur ||
-        container->cur > it->end) {
+    if (!nanocbor_in_container(container) || !nanocbor_at_end(container)) {
+        return NANOCBOR_ERR_INVALID_TYPE;
+    }
+    if (container->flags & NANOCBOR_DECODER_FLAG_SHARED) {
+        return nanocbor_skip(it); // todo: use _skip_limited instead to bound recursion?!
+    }
+    if (container->cur <= it->cur || container->cur > it->end) {
         return NANOCBOR_ERR_INVALID_TYPE;
     }
     if (it->remaining) {
