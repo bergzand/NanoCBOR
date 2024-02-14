@@ -53,7 +53,7 @@ static void test_decode_map(void)
     nanocbor_decoder_init(&val, map_empty, sizeof(map_empty));
     CU_ASSERT_EQUAL(nanocbor_enter_map(&val, &cont), NANOCBOR_OK);
     CU_ASSERT_EQUAL(nanocbor_at_end(&cont), true);
-    nanocbor_leave_container(&val, &cont);
+    CU_ASSERT_EQUAL(nanocbor_leave_container(&val, &cont), NANOCBOR_OK);
     CU_ASSERT_EQUAL(nanocbor_at_end(&val), true);
 
     /* Init the decoder and verify the decoding of the map elements */
@@ -64,7 +64,7 @@ static void test_decode_map(void)
     CU_ASSERT(nanocbor_get_uint32(&cont, &tmp) > 0);
     CU_ASSERT_EQUAL(tmp, 2);
     CU_ASSERT_EQUAL(nanocbor_at_end(&cont), true);
-    nanocbor_leave_container(&val, &cont);
+    CU_ASSERT_EQUAL(nanocbor_leave_container(&val, &cont), NANOCBOR_OK);
     CU_ASSERT_EQUAL(nanocbor_at_end(&val), true);
 
     /* Init the decoder and skip over the empty map */
@@ -90,21 +90,21 @@ static void test_decode_map(void)
     CU_ASSERT_EQUAL(tmp, 3);
     CU_ASSERT_EQUAL(nanocbor_enter_array(&cont, &array), NANOCBOR_OK);
     CU_ASSERT_EQUAL(nanocbor_at_end(&array), true);
-    nanocbor_leave_container(&cont, &array);
+    CU_ASSERT_EQUAL(nanocbor_leave_container(&cont, &array), NANOCBOR_OK);
     CU_ASSERT_EQUAL(nanocbor_at_end(&cont), false);
 
     CU_ASSERT(nanocbor_get_uint32(&cont, &tmp) > 0);
     CU_ASSERT_EQUAL(tmp, 4);
     CU_ASSERT_EQUAL(nanocbor_enter_array(&cont, &array), NANOCBOR_OK);
     CU_ASSERT_EQUAL(nanocbor_at_end(&array), true);
-    nanocbor_leave_container(&cont, &array);
+    CU_ASSERT_EQUAL(nanocbor_leave_container(&cont, &array), NANOCBOR_OK);
     CU_ASSERT_EQUAL(nanocbor_at_end(&cont), false);
 
     CU_ASSERT(nanocbor_get_uint32(&cont, &tmp) > 0);
     CU_ASSERT_EQUAL(tmp, 5);
     CU_ASSERT_EQUAL(nanocbor_enter_array(&cont, &array), NANOCBOR_OK);
     CU_ASSERT_EQUAL(nanocbor_at_end(&array), true);
-    nanocbor_leave_container(&cont, &array);
+    CU_ASSERT_EQUAL(nanocbor_leave_container(&cont, &array), NANOCBOR_OK);
     CU_ASSERT_EQUAL(nanocbor_at_end(&cont), false);
 
     CU_ASSERT(nanocbor_get_uint32(&cont, &tmp) > 0);

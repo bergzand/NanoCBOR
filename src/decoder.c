@@ -661,10 +661,17 @@ int nanocbor_enter_map(const nanocbor_value_t *it, nanocbor_value_t *map)
     return res;
 }
 
-void nanocbor_leave_container(nanocbor_value_t *it, nanocbor_value_t *container)
+int nanocbor_leave_container(nanocbor_value_t *it, nanocbor_value_t *container)
 {
     if (container->flags & NANOCBOR_DECODER_FLAG_SHARED) {
         return;
+    }
+    /* check `container` to be a valid, fully consumed container that is plausible to have been entered from `it` */
+    if (!nanocbor_in_container(container) ||
+        !nanocbor_at_end(container) ||
+        container->cur <= it->cur ||
+        container->cur > it->end) {
+        return NANOCBOR_ERR_INVALID_TYPE;
     }
     if (it->remaining) {
         it->remaining--;
@@ -675,6 +682,7 @@ void nanocbor_leave_container(nanocbor_value_t *it, nanocbor_value_t *container)
     else {
         it->cur = container->cur;
     }
+    return NANOCBOR_OK;
 }
 
 static int _skip_simple(nanocbor_value_t *it)

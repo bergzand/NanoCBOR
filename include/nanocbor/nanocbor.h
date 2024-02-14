@@ -510,8 +510,11 @@ int nanocbor_enter_map(const nanocbor_value_t *it, nanocbor_value_t *map);
  *
  * @param[in]   it          parent CBOR structure
  * @param[in]   container   exhausted CBOR container
+ *
+ * @return                  NANOCBOR_OK on success
+ * @return                  negative on error
  */
-void nanocbor_leave_container(nanocbor_value_t *it,
+int nanocbor_leave_container(nanocbor_value_t *it,
                               nanocbor_value_t *container);
 // todo: return NANOCBOR_OK, if container was actually container?
 
