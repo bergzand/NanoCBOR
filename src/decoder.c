@@ -209,6 +209,7 @@ static inline int _packed_consume_table(nanocbor_value_t *cvalue, nanocbor_value
             }
             // todo: will this break if rump is array? > shouldn't if skip behaves correctly
             // this should in theory allow to fix leave_container if array inside table -> check for flag, then no-op
+            // skip rump
             nanocbor_skip(cvalue);
             _advance(target, t->len);
             return NANOCBOR_OK;
@@ -607,7 +608,10 @@ static int _enter_container(const nanocbor_value_t *it,
     memcpy(container->shared_item_tables, it->shared_item_tables, sizeof(it->shared_item_tables));
 
     nanocbor_value_t followed;
-    // todo: discarding const qualifier not very nice
+    // todo: discarding const qualifier not nice -> same will happen for nanocbor_get_type
+    // two options:
+    // - change function signature
+    // - keep it const and skip in leave_container instead of looking at container->curr, would need additional internal copy of it for _packed_follow
     if (_packed_follow((nanocbor_value_t *)it, &followed) == NANOCBOR_OK) {
         int res = _enter_container(&followed, container, type);
         container->flags |= (followed.flags & NANOCBOR_DECODER_FLAG_SHARED) ? NANOCBOR_DECODER_FLAG_SHARED : 0;
