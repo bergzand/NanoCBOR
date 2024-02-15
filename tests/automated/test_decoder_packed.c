@@ -349,23 +349,56 @@ static void test_packed_nested_indirection(void)
     CU_ASSERT_EQUAL(nanocbor_at_end(&val), true);
 }
 
-// static void test_packed_empty(void)
-// {
-//     nanocbor_value_t val, val2, val3, val4;
-//     const uint8_t *buf;
-//     size_t len;
+static void test_packed_undefined_table(void)
+{
+    nanocbor_value_t val;
 
-//     // // simple(0)
-//     // static const uint8_t undefined_table[] = { 0xE0 };
-//     // // 113([[], simple(0))
-//     // static const uint8_t undefined_ref[] = { 0xD8, 0x71, 0x82, 0x80, 0xE0 };
-//     // // 113([[simple(0)], simple(0)])
-//     // static const uint8_t loop[] = { 0xD8, 0x71, 0x82, 0x81, 0xE0, 0xE0 };
-//     // // 113([[simple(1), simple(0)], simple(0)])
-//     // static const uint8_t loop_indirection[] = { 0xD8, 0x71, 0x82, 0x82, 0xE1, 0xE0, 0xE0 };
-//     // // 113([[], 113([[], 113([[], 113([[], null])])])])
-//     // static const uint8_t max_nesting_exceeded[] = { 0xD8, 0x71, 0x82, 0x80, 0xD8, 0x71, 0x82, 0x80, 0xD8, 0x71, 0x82, 0x80, 0xD8, 0x71, 0x82, 0x80, 0xF6 };
-// }
+    // simple(0)
+    static const uint8_t undefined_table[] = { 0xE0 };
+    nanocbor_decoder_init_packed(&val, undefined_table, sizeof(undefined_table));
+    CU_ASSERT_EQUAL(nanocbor_get_null(&val), NANOCBOR_ERR_INVALID_TYPE); // todo: which error expected?
+}
+
+
+static void test_packed_undefined_reference(void)
+{
+    nanocbor_value_t val;
+
+    // 113([[], simple(0))
+    static const uint8_t undefined_ref[] = { 0xD8, 0x71, 0x82, 0x80, 0xE0 };
+    nanocbor_decoder_init_packed(&val, undefined_ref, sizeof(undefined_ref));
+    CU_ASSERT_EQUAL(nanocbor_get_null(&val), NANOCBOR_ERR_INVALID_TYPE); // todo: which error expected?
+}
+
+static void test_packed_loop(void)
+{
+    nanocbor_value_t val;
+
+    // 113([[simple(0)], simple(0)])
+    static const uint8_t loop[] = { 0xD8, 0x71, 0x82, 0x81, 0xE0, 0xE0 };
+    nanocbor_decoder_init_packed(&val, loop, sizeof(loop));
+    // CU_ASSERT_EQUAL(nanocbor_get_null(&val), NANOCBOR_ERR_RECURSION);
+}
+
+static void test_packed_loop_indirection(void)
+{
+    nanocbor_value_t val;
+
+    // 113([[simple(1), simple(0)], simple(0)])
+    static const uint8_t loop_indirection[] = { 0xD8, 0x71, 0x82, 0x82, 0xE1, 0xE0, 0xE0 };
+    nanocbor_decoder_init_packed(&val, loop_indirection, sizeof(loop_indirection));
+    // CU_ASSERT_EQUAL(nanocbor_get_null(&val), NANOCBOR_ERR_RECURSION);
+}
+
+static void test_packed_max_nesting_exceeded(void)
+{
+    nanocbor_value_t val;
+
+    // 113([[], 113([[], 113([[], 113([[], null])])])])
+    static const uint8_t max_nesting_exceeded[] = { 0xD8, 0x71, 0x82, 0x80, 0xD8, 0x71, 0x82, 0x80, 0xD8, 0x71, 0x82, 0x80, 0xD8, 0x71, 0x82, 0x80, 0xF6 };
+    nanocbor_decoder_init_packed(&val, max_nesting_exceeded, sizeof(max_nesting_exceeded));
+    CU_ASSERT_EQUAL(nanocbor_get_null(&val), NANOCBOR_ERR_RECURSION); // todo: which error expected?
+}
 
 const test_t tests_decoder_packed[] = {
     {
@@ -447,6 +480,26 @@ const test_t tests_decoder_packed[] = {
     {
         .f = test_packed_nested_indirection,
         .n = "CBOR packed nested shared item tables with indirect reference test",
+    },
+    {
+        .f = test_packed_undefined_table,
+        .n = "CBOR packed undefined table test",
+    },
+    {
+        .f = test_packed_undefined_reference,
+        .n = "CBOR packed undefined reference test",
+    },
+    {
+        .f = test_packed_loop,
+        .n = "CBOR packed reference loop test",
+    },
+    {
+        .f = test_packed_loop_indirection,
+        .n = "CBOR packed indirect reference loop test",
+    },
+    {
+        .f = test_packed_max_nesting_exceeded,
+        .n = "CBOR packed max nesting exceeded test",
     },
     {
         .f = NULL,
