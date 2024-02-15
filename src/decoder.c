@@ -147,45 +147,6 @@ static int _get_uint64(const nanocbor_value_t *cvalue, uint64_t *value,
     return (int)(1 + bytes);
 }
 
-static int _get_and_advance_uint8(nanocbor_value_t *cvalue, uint8_t *value,
-                                  int type)
-{
-    uint64_t tmp = 0;
-    int res = _get_uint64(cvalue, &tmp, NANOCBOR_SIZE_BYTE, type);
-    *value = (uint8_t)tmp;
-
-    return _advance_if(cvalue, res);
-}
-
-static int _get_and_advance_uint16(nanocbor_value_t *cvalue, uint16_t *value,
-                                   int type)
-{
-    uint64_t tmp = 0;
-    int res = _get_uint64(cvalue, &tmp, NANOCBOR_SIZE_SHORT, type);
-    *value = (uint16_t)tmp;
-
-    return _advance_if(cvalue, res);
-}
-
-static int _get_and_advance_uint32(nanocbor_value_t *cvalue, uint32_t *value,
-                                   int type)
-{
-    uint64_t tmp = 0;
-    int res = _get_uint64(cvalue, &tmp, NANOCBOR_SIZE_WORD, type);
-    *value = tmp;
-
-    return _advance_if(cvalue, res);
-}
-
-static int _get_and_advance_uint64(nanocbor_value_t *cvalue, uint64_t *value,
-                                   int type)
-{
-    uint64_t tmp = 0;
-    int res = _get_uint64(cvalue, &tmp, NANOCBOR_SIZE_LONG, type);
-    *value = tmp;
-
-    return _advance_if(cvalue, res);
-}
 
 static inline bool _packed_enabled(const nanocbor_value_t *value)
 {
@@ -195,10 +156,10 @@ static inline bool _packed_enabled(const nanocbor_value_t *value)
 static inline int _packed_consume_table(nanocbor_value_t *cvalue, nanocbor_value_t *target)
 {
     int ret;
-    uint8_t table_size = 0;
-    ret = _get_and_advance_uint8(cvalue, &table_size, NANOCBOR_TYPE_ARR); // todo: use _match_value_exact instead (known array size)
-    if (ret != 1 || table_size != 2 || nanocbor_get_type(cvalue) != NANOCBOR_TYPE_ARR)
+    ret = _value_match_exact(cvalue, NANOCBOR_TYPE_ARR << NANOCBOR_TYPE_OFFSET | 0x02);
+    if (ret < 0) {
         return NANOCBOR_ERR_INVALID_TYPE; // todo: which error code to return here?
+    }
 
     *target = *cvalue;
     for (size_t i=0; i<NANOCBOR_DECODE_PACKED_NESTED_TABLES_MAX; i++) {
@@ -230,7 +191,9 @@ static inline int _packed_follow_reference(const nanocbor_value_t *cvalue, nanoc
             nanocbor_decoder_init_packed(target, t->start, t->len);
             target->flags |= NANOCBOR_DECODER_FLAG_SHARED;
             uint64_t table_size = 0;
-            _get_and_advance_uint64(target, &table_size, NANOCBOR_TYPE_ARR);
+            // don't use _get_and_advance_uint64() to avoid packed
+            int res = _get_uint64(target, &table_size, NANOCBOR_SIZE_LONG, NANOCBOR_TYPE_ARR);
+            _advance_if(target, res);
             if (idx < table_size) {
                 for (size_t j=0; j<idx; j++) {
                     nanocbor_skip(target);
@@ -252,18 +215,19 @@ static inline int _packed_follow(nanocbor_value_t *cvalue, nanocbor_value_t *tar
     }
 
     int ret;
-    uint64_t tmp = 0;
     // todo: might break since using API-facing function
     int ctype = nanocbor_get_type(cvalue);
-    ret = _get_uint64(cvalue, &tmp, NANOCBOR_SIZE_WORD, ctype);
-    // todo: error handling
-
     if (ctype == NANOCBOR_TYPE_TAG) {
-        if (tmp == NANOCBOR_TAG_PACKED_TABLE) {
+        uint64_t tag = 0;
+        ret = _get_uint64(cvalue, &tag, NANOCBOR_SIZE_WORD, NANOCBOR_TYPE_TAG);
+        if (ret < 0) {
+            return NANOCBOR_NOT_FOUND;
+        }
+        if (tag == NANOCBOR_TAG_PACKED_TABLE) {
             _advance(cvalue, ret); // todo: should be broken, as decrements counter for cvalue->remaining, also below -> test & fix
             return _packed_consume_table(cvalue, target);
         }
-        else if (tmp == NANOCBOR_TAG_PACKED_REF_SHARED) {
+        else if (tag == NANOCBOR_TAG_PACKED_REF_SHARED) {
             _advance(cvalue, ret);
             int64_t n;
             // todo: might break since using API-facing function
@@ -274,11 +238,78 @@ static inline int _packed_follow(nanocbor_value_t *cvalue, nanocbor_value_t *tar
             return _packed_follow_reference(cvalue, target, idx);
         }
     }
-    else if (ctype == NANOCBOR_TYPE_FLOAT && tmp < 16) {
-        _advance(cvalue, ret);
-        return _packed_follow_reference(cvalue, target, tmp);
+    else if (ctype == NANOCBOR_TYPE_FLOAT) {
+        uint8_t simple = *cvalue->cur & NANOCBOR_VALUE_MASK;
+        if (simple < 16) {
+            _advance(cvalue, 1);
+            return _packed_follow_reference(cvalue, target, simple);
+        }
     }
     return NANOCBOR_NOT_FOUND;
+}
+
+static int _get_and_advance_uint8(nanocbor_value_t *cvalue, uint8_t *value,
+                                  int type)
+{
+#if NANOCBOR_DECODE_PACKED_ENABLED
+    nanocbor_value_t followed;
+    if (_packed_follow(cvalue, &followed) == NANOCBOR_OK) {
+        return _get_and_advance_uint8(&followed, value, type);
+    }
+#endif
+    uint64_t tmp = 0;
+    int res = _get_uint64(cvalue, &tmp, NANOCBOR_SIZE_BYTE, type);
+    *value = (uint8_t)tmp;
+
+    return _advance_if(cvalue, res);
+}
+
+static int _get_and_advance_uint16(nanocbor_value_t *cvalue, uint16_t *value,
+                                   int type)
+{
+#if NANOCBOR_DECODE_PACKED_ENABLED
+    nanocbor_value_t followed;
+    if (_packed_follow(cvalue, &followed) == NANOCBOR_OK) {
+        return _get_and_advance_uint16(&followed, value, type);
+    }
+#endif
+    uint64_t tmp = 0;
+    int res = _get_uint64(cvalue, &tmp, NANOCBOR_SIZE_SHORT, type);
+    *value = (uint16_t)tmp;
+
+    return _advance_if(cvalue, res);
+}
+
+static int _get_and_advance_uint32(nanocbor_value_t *cvalue, uint32_t *value,
+                                   int type)
+{
+#if NANOCBOR_DECODE_PACKED_ENABLED
+    nanocbor_value_t followed;
+    if (_packed_follow(cvalue, &followed) == NANOCBOR_OK) {
+        return _get_and_advance_uint32(&followed, value, type);
+    }
+#endif
+    uint64_t tmp = 0;
+    int res = _get_uint64(cvalue, &tmp, NANOCBOR_SIZE_WORD, type);
+    *value = tmp;
+
+    return _advance_if(cvalue, res);
+}
+
+static int _get_and_advance_uint64(nanocbor_value_t *cvalue, uint64_t *value,
+                                   int type)
+{
+#if NANOCBOR_DECODE_PACKED_ENABLED
+    nanocbor_value_t followed;
+    if (_packed_follow(cvalue, &followed) == NANOCBOR_OK) {
+        return _get_and_advance_uint64(&followed, value, type);
+    }
+#endif
+    uint64_t tmp = 0;
+    int res = _get_uint64(cvalue, &tmp, NANOCBOR_SIZE_LONG, type);
+    *value = tmp;
+
+    return _advance_if(cvalue, res);
 }
 
 int nanocbor_get_uint8(nanocbor_value_t *cvalue, uint8_t *value)
@@ -304,6 +335,12 @@ int nanocbor_get_uint64(nanocbor_value_t *cvalue, uint64_t *value)
 static int _get_and_advance_int64(nanocbor_value_t *cvalue, int64_t *value,
                                   uint8_t max, uint64_t bound)
 {
+#if NANOCBOR_DECODE_PACKED_ENABLED
+    nanocbor_value_t followed;
+    if (_packed_follow(cvalue, &followed) == NANOCBOR_OK) {
+        return _get_and_advance_int64(&followed, value, max, bound);
+    }
+#endif
     int type = nanocbor_get_type(cvalue);
     if (type < 0) {
         return type;
@@ -410,7 +447,6 @@ int nanocbor_get_decimal_frac(nanocbor_value_t *cvalue, int32_t *e, int32_t *m)
 static int _get_str(nanocbor_value_t *cvalue, const uint8_t **buf, size_t *len,
                     uint8_t type)
 {
-// todo: needs same implementation for _enter_container/get_* (can we use _get_uint64?)
 // todo: recursion count needed for loop detection!
 #if NANOCBOR_DECODE_PACKED_ENABLED
     nanocbor_value_t followed;
@@ -449,7 +485,6 @@ int nanocbor_get_tstr(nanocbor_value_t *cvalue, const uint8_t **buf,
 
 int nanocbor_get_null(nanocbor_value_t *cvalue)
 {
-// todo: needs same implementation for _enter_container/get_* (can we use _get_uint64?)
 // todo: recursion count needed for loop detection!
 #if NANOCBOR_DECODE_PACKED_ENABLED
     nanocbor_value_t followed;
@@ -463,6 +498,13 @@ int nanocbor_get_null(nanocbor_value_t *cvalue)
 
 int nanocbor_get_bool(nanocbor_value_t *cvalue, bool *value)
 {
+// todo: recursion count needed for loop detection!
+#if NANOCBOR_DECODE_PACKED_ENABLED
+    nanocbor_value_t followed;
+    if (_packed_follow(cvalue, &followed) == NANOCBOR_OK) {
+        return nanocbor_get_bool(&followed, value);
+    }
+#endif
     int res = _value_match_exact(cvalue,
                                  NANOCBOR_MASK_FLOAT | NANOCBOR_SIMPLE_FALSE);
     if (res >= NANOCBOR_OK) {
@@ -480,6 +522,13 @@ int nanocbor_get_bool(nanocbor_value_t *cvalue, bool *value)
 
 int nanocbor_get_undefined(nanocbor_value_t *cvalue)
 {
+// todo: recursion count needed for loop detection!
+#if NANOCBOR_DECODE_PACKED_ENABLED
+    nanocbor_value_t followed;
+    if (_packed_follow(cvalue, &followed) == NANOCBOR_OK) {
+        return nanocbor_get_undefined(&followed);
+    }
+#endif
     return _value_match_exact(cvalue,
                               NANOCBOR_MASK_FLOAT | NANOCBOR_SIMPLE_UNDEF);
 }
@@ -583,6 +632,13 @@ static int _decode_double(nanocbor_value_t *cvalue, double *value)
 
 int nanocbor_get_float(nanocbor_value_t *cvalue, float *value)
 {
+// todo: recursion count needed for loop detection!
+#if NANOCBOR_DECODE_PACKED_ENABLED
+    nanocbor_value_t followed;
+    if (_packed_follow(cvalue, &followed) == NANOCBOR_OK) {
+        return nanocbor_get_float(&followed, value);
+    }
+#endif
     int res = _decode_half_float(cvalue, value);
     if (res < 0) {
         res = _decode_float(cvalue, value);
@@ -592,6 +648,13 @@ int nanocbor_get_float(nanocbor_value_t *cvalue, float *value)
 
 int nanocbor_get_double(nanocbor_value_t *cvalue, double *value)
 {
+// todo: recursion count needed for loop detection!
+#if NANOCBOR_DECODE_PACKED_ENABLED
+    nanocbor_value_t followed;
+    if (_packed_follow(cvalue, &followed) == NANOCBOR_OK) {
+        return nanocbor_get_double(&followed, value);
+    }
+#endif
     float tmp = 0;
     int res = nanocbor_get_float(cvalue, &tmp);
     if (res >= NANOCBOR_OK) {
@@ -607,12 +670,10 @@ static int _enter_container(const nanocbor_value_t *it,
     if (_packed_enabled(it)) {
         memcpy(container->shared_item_tables, it->shared_item_tables, sizeof(it->shared_item_tables));
 
+        // todo: additional nanocbor_value_t whis is only needed because `it` is const
+        // todo: getting rid of const would avoid skip in leave_container, too
         nanocbor_value_t tmp = *it;
         nanocbor_value_t followed;
-        // todo: discarding const qualifier not nice -> same will happen for nanocbor_get_type
-        // two options:
-        // - change function signature
-        // - keep it const and skip in leave_container instead of looking at container->curr, would need additional internal copy of it for _packed_follow
         if (_packed_follow(&tmp, &followed) == NANOCBOR_OK) {
             int res = _enter_container(&followed, container, type);
             container->flags |= (followed.flags & NANOCBOR_DECODER_FLAG_SHARED) ? NANOCBOR_DECODER_FLAG_SHARED : 0;
@@ -755,7 +816,6 @@ static int _skip_limited(nanocbor_value_t *it, uint8_t limit)
     return res < 0 ? res : NANOCBOR_OK;
 }
 
-// todo: how does nanocbor_skip behave with tags? shouldn't it skip tag content, too?
 int nanocbor_skip(nanocbor_value_t *it)
 {
     return _skip_limited(it, NANOCBOR_RECURSION_MAX);
