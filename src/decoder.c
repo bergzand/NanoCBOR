@@ -188,31 +188,27 @@ static inline int _packed_consume_table(nanocbor_value_t *cvalue, nanocbor_value
 static inline int _packed_follow_reference(const nanocbor_value_t *cvalue, nanocbor_value_t *target, uint64_t idx)
 {
     // int ret;
-    for (size_t i=0; i<NANOCBOR_DECODE_PACKED_NESTED_TABLES_MAX; i++) {
-        const struct nanocbor_packed_table *t = &cvalue->shared_item_tables[NANOCBOR_DECODE_PACKED_NESTED_TABLES_MAX-1-i];
+    static const size_t last = NANOCBOR_DECODE_PACKED_NESTED_TABLES_MAX-1;
+    for (size_t i=0; i<=last; i++) {
+        const struct nanocbor_packed_table *t = &cvalue->shared_item_tables[last-i];
         if (t->start != NULL) {
             // todo: do we really have to store length in B of each table? > probably yes, also for implicit tables added before decoding!
             // todo: proper error handling everywhere
             nanocbor_decoder_init_packed(target, t->start, t->len);
             target->flags |= NANOCBOR_DECODER_FLAG_SHARED;
-            // todo: double-check - is copying tables really always correct?
-            // cvalue might be somewhere deep down with more table definitions that were not available when defining this specific table
-            // could RFC be changed to disallow references within same table definition? any valid use-case for it?
-            // todo: ask on mailing list!
-            // see https://www.ietf.org/archive/id/draft-ietf-cbor-packed-10.html#section-3
-            /*
-            Packed item references in the newly constructed (low-numbered) parts of the table are usually interpreted
-            in the number space of that table (which includes the, now higher-numbered, inherited parts),
-            while references in any existing, inherited (higher-numbered) part continue to use the (more limited) number space of the inherited table.
-            */
-            _packed_copy_tables(target, cvalue);
+
             uint64_t table_size = 0;
-            // don't use _get_and_advance_uint64() to avoid packed
+            /* don't use _get_and_advance_uint64() to avoid packed handling */
             int res = _get_uint64(target, &table_size, NANOCBOR_SIZE_LONG, NANOCBOR_TYPE_ARR);
             _advance_if(target, res);
             if (idx < table_size) {
                 for (size_t j=0; j<idx; j++) {
-                    nanocbor_skip(target);
+                    nanocbor_skip(target); // todo: use _skip_limited here and elsewhere to pass recursion limit around
+                }
+                /* copy all common tables, i.e., ones that were defined up to and including i */
+                _packed_copy_tables(target, cvalue);
+                for (size_t j=last-i+1; j<=last; j++) {
+                    target->shared_item_tables[j].start = NULL;
                 }
                 return NANOCBOR_OK;
             } else {
@@ -494,13 +490,21 @@ int nanocbor_get_tstr(nanocbor_value_t *cvalue, const uint8_t **buf,
     return _get_str(cvalue, buf, len, NANOCBOR_TYPE_TSTR);
 }
 
+static int _get_simple_exact(nanocbor_value_t *cvalue, uint8_t val, uint8_t limit)
+{
+    if (limit == 0) {
+        return NANOCBOR_ERR_RECURSION;
+    }
+    _PACKED_FOLLOW(_get_simple_exact(&followed, val, limit-1));
+
+    return _value_match_exact(cvalue, val);
+}
+
 int nanocbor_get_null(nanocbor_value_t *cvalue)
 {
-    // todo: recursion count needed for loop detection!
-    _PACKED_FOLLOW(nanocbor_get_null(&followed));
-
-    return _value_match_exact(cvalue,
-                              NANOCBOR_MASK_FLOAT | NANOCBOR_SIMPLE_NULL);
+    return _get_simple_exact(cvalue,
+                            NANOCBOR_MASK_FLOAT | NANOCBOR_SIMPLE_NULL,
+                            NANOCBOR_RECURSION_MAX);
 }
 
 int nanocbor_get_bool(nanocbor_value_t *cvalue, bool *value)
@@ -525,11 +529,9 @@ int nanocbor_get_bool(nanocbor_value_t *cvalue, bool *value)
 
 int nanocbor_get_undefined(nanocbor_value_t *cvalue)
 {
-    // todo: recursion count needed for loop detection!
-    _PACKED_FOLLOW(nanocbor_get_undefined(&followed));
-
-    return _value_match_exact(cvalue,
-                              NANOCBOR_MASK_FLOAT | NANOCBOR_SIMPLE_UNDEF);
+    return _get_simple_exact(cvalue,
+                            NANOCBOR_MASK_FLOAT | NANOCBOR_SIMPLE_UNDEF,
+                            NANOCBOR_RECURSION_MAX);
 }
 
 int nanocbor_get_simple(nanocbor_value_t *cvalue, uint8_t *value)

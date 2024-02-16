@@ -318,14 +318,14 @@ static void test_packed_indirection(void)
     CU_ASSERT_EQUAL(nanocbor_at_end(&val), true);
 }
 
-static void test_packed_nested(void)
+static void test_packed_nested_tables(void)
 {
     nanocbor_value_t val, val2;
     bool b;
 
     // 113([[false, true], 113([[null], [simple(0), simple(2), simple(1)]])])
-    static const uint8_t nested[] = { 0xD8, 0x71, 0x82, 0x82, 0xF4, 0xF5, 0xD8, 0x71, 0x82, 0x81, 0xF6, 0x83, 0xE0, 0xE2, 0xE1 };
-    nanocbor_decoder_init_packed(&val, nested, sizeof(nested));
+    static const uint8_t nested_tables[] = { 0xD8, 0x71, 0x82, 0x82, 0xF4, 0xF5, 0xD8, 0x71, 0x82, 0x81, 0xF6, 0x83, 0xE0, 0xE2, 0xE1 };
+    nanocbor_decoder_init_packed(&val, nested_tables, sizeof(nested_tables));
     CU_ASSERT_EQUAL(nanocbor_enter_array(&val, &val2), NANOCBOR_OK);
     CU_ASSERT_EQUAL(nanocbor_array_items_remaining(&val2), 3);
     CU_ASSERT_EQUAL(nanocbor_get_null(&val2), NANOCBOR_OK);
@@ -338,13 +338,26 @@ static void test_packed_nested(void)
     CU_ASSERT_EQUAL(nanocbor_at_end(&val), true);
 }
 
-static void test_packed_nested_indirection(void)
+static void test_packed_nested_tables_with_indirection(void)
+{
+    nanocbor_value_t val;
+    bool b;
+
+    // 113([[true, simple(0)], 113([[false], simple(2)])])
+    static const uint8_t nested_tables[] = { 0xD8, 0x71, 0x82, 0x82, 0xF5, 0xE0, 0xD8, 0x71, 0x82, 0x81, 0xF4, 0xE2 };
+    nanocbor_decoder_init_packed(&val, nested_tables, sizeof(nested_tables));
+    CU_ASSERT_EQUAL(nanocbor_get_bool(&val, &b), NANOCBOR_OK);
+    CU_ASSERT_EQUAL(b, true);
+    CU_ASSERT_EQUAL(nanocbor_at_end(&val), true);
+}
+
+static void test_packed_nested_table_within_table(void)
 {
     nanocbor_value_t val;
 
     // 113([[null, 113([[undefined], simple(0)])], simple(1)])
-    static const uint8_t nested_indirection[] = { 0xD8, 0x71, 0x82, 0x82, 0xF6, 0xD8, 0x71, 0x82, 0x81, 0xF7, 0xE0, 0xE1 };
-    nanocbor_decoder_init_packed(&val, nested_indirection, sizeof(nested_indirection));
+    static const uint8_t nested_table_within_table[] = { 0xD8, 0x71, 0x82, 0x82, 0xF6, 0xD8, 0x71, 0x82, 0x81, 0xF7, 0xE0, 0xE1 };
+    nanocbor_decoder_init_packed(&val, nested_table_within_table, sizeof(nested_table_within_table));
     CU_ASSERT_EQUAL(nanocbor_get_undefined(&val), NANOCBOR_OK);
     CU_ASSERT_EQUAL(nanocbor_at_end(&val), true);
 }
@@ -377,7 +390,8 @@ static void test_packed_loop(void)
     // 113([[simple(0)], simple(0)])
     static const uint8_t loop[] = { 0xD8, 0x71, 0x82, 0x81, 0xE0, 0xE0 };
     nanocbor_decoder_init_packed(&val, loop, sizeof(loop));
-    // CU_ASSERT_EQUAL(nanocbor_get_null(&val), NANOCBOR_ERR_RECURSION);
+    CU_ASSERT_EQUAL(nanocbor_get_null(&val), NANOCBOR_ERR_RECURSION);
+    // todo: for now, only works for null and undefined!
 }
 
 static void test_packed_loop_indirection(void)
@@ -387,7 +401,7 @@ static void test_packed_loop_indirection(void)
     // 113([[simple(1), simple(0)], simple(0)])
     static const uint8_t loop_indirection[] = { 0xD8, 0x71, 0x82, 0x82, 0xE1, 0xE0, 0xE0 };
     nanocbor_decoder_init_packed(&val, loop_indirection, sizeof(loop_indirection));
-    // CU_ASSERT_EQUAL(nanocbor_get_null(&val), NANOCBOR_ERR_RECURSION);
+    CU_ASSERT_EQUAL(nanocbor_get_null(&val), NANOCBOR_ERR_RECURSION);
 }
 
 static void test_packed_max_nesting_exceeded(void)
@@ -474,12 +488,16 @@ const test_t tests_decoder_packed[] = {
         .n = "CBOR packed indirect reference test",
     },
     {
-        .f = test_packed_nested,
+        .f = test_packed_nested_tables,
         .n = "CBOR packed nested shared item tables test",
     },
     {
-        .f = test_packed_nested_indirection,
+        .f = test_packed_nested_tables_with_indirection,
         .n = "CBOR packed nested shared item tables with indirect reference test",
+    },
+    {
+        .f = test_packed_nested_table_within_table,
+        .n = "CBOR packed nested shared item table definition within table definition test",
     },
     {
         .f = test_packed_undefined_table,
