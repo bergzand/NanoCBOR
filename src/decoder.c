@@ -267,6 +267,11 @@ static inline int _packed_follow(nanocbor_value_t *cvalue, nanocbor_value_t *tar
             /* cannot use _advance() since it would decrement remaining */
             cvalue->cur += ret;
             // todo: might break since using API-facing function
+            /* should actually be correct since draft-10 states:
+                Note also that the tag content of Tag 6 may
+                itself be packed, so it may need to be unpacked to make this
+                determination.
+            */
             ret = nanocbor_get_int64(cvalue, &n);
             if (ret != NANOCBOR_OK)
                 return NANOCBOR_ERR_INVALID_TYPE; // todo: which error code to return here?
