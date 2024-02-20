@@ -270,16 +270,39 @@ void nanocbor_decoder_init(nanocbor_value_t *value, const uint8_t *buf,
  * The decoder will attempt to decode CBOR types until the buffer is exhausted
  *
  * Use @ref nanocbor_decoder_init when packed CBOR support is not required.
+ * Use @ref nanocbor_decoder_init_packed_table to provide an initial shared
+ * item table.
  *
  * @note Note that support for CBOR packed needs to be enabled at compile-time
  *       using @ref NANOCBOR_DECODE_PACKED_ENABLED
  *
- * @param[in]   value   decoder value context
- * @param[in]   buf     Buffer to decode from
- * @param[in]   len     Length in bytes of the buffer
+ * @param[in]   value       decoder value context
+ * @param[in]   buf         Buffer to decode from
+ * @param[in]   len         Length in bytes of the buffer
  */
 void nanocbor_decoder_init_packed(nanocbor_value_t *value, const uint8_t *buf,
                            size_t len);
+
+/**
+ * @brief Initialize a decoder context decoding the CBOR structure from @p buf
+ *        with @p len bytes, with transparent decoding support for CBOR packed
+ *        and an initial shared item table provided in @p table_buf
+ *
+ * The decoder will attempt to decode CBOR types until the buffer is exhausted
+ *
+ * Use @ref nanocbor_decoder_init when packed CBOR support is not required.
+ *
+ * @note Note that support for CBOR packed needs to be enabled at compile-time
+ *       using @ref NANOCBOR_DECODE_PACKED_ENABLED
+ *
+ * @param[in]   value       decoder value context
+ * @param[in]   buf         Buffer to decode from
+ * @param[in]   len         Length in bytes of the buffer
+ * @param[in]   table_buf   Buffer containing initial shared item table, or NULL if none
+ * @param[in]   table_len   Length in bytes of the table buffer
+ */
+void nanocbor_decoder_init_packed_table(nanocbor_value_t *value, const uint8_t *buf,
+                           size_t len, const uint8_t *table_buf, size_t table_len);
 
 /**
  * @brief Retrieve the type of the CBOR value at the current position

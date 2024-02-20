@@ -35,12 +35,22 @@ void nanocbor_decoder_init(nanocbor_value_t *value, const uint8_t *buf,
 }
 
 #if NANOCBOR_DECODE_PACKED_ENABLED
-// todo: allow passing buf+len as initial table setup
 void nanocbor_decoder_init_packed(nanocbor_value_t *value, const uint8_t *buf,
                            size_t len)
 {
     nanocbor_decoder_init(value, buf, len);
     value->flags = NANOCBOR_DECODER_FLAG_PACKED_SUPPORT;
+}
+
+void nanocbor_decoder_init_packed_table(nanocbor_value_t *value, const uint8_t *buf,
+                           size_t len, const uint8_t *table_buf, size_t table_len)
+{
+    nanocbor_decoder_init_packed(value, buf, len);
+    if (table_buf != NULL && table_len > 0) {
+        // todo: maybe validate content to be CBOR array with limited length as expected
+        value->shared_item_tables[0].start = table_buf;
+        value->shared_item_tables[0].len = table_len;
+    }
 }
 #endif
 
@@ -204,6 +214,7 @@ static inline int _packed_follow_reference(const nanocbor_value_t *cvalue, nanoc
             nanocbor_decoder_init_packed(target, t->start, t->len);
 
             uint64_t table_size = 0;
+            // todo: table might be of indefinite length?
             /* don't use _get_and_advance_uint64() to avoid packed handling */
             int res = _get_uint64(target, &table_size, NANOCBOR_SIZE_LONG, NANOCBOR_TYPE_ARR);
             if (res < 0) return NANOCBOR_ERR_INVALID_TYPE; // todo: which error code to return?

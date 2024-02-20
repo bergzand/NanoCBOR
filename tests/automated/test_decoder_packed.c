@@ -400,6 +400,22 @@ static void test_packed_reference_by_tag(void)
     CU_ASSERT_EQUAL(nanocbor_at_end(&val), true);
 }
 
+static void test_packed_initial_table(void)
+{
+    nanocbor_encoder_t enc;
+    uint8_t table[10];
+    nanocbor_encoder_init(&enc, table, sizeof(table));
+    nanocbor_fmt_array(&enc, 1);
+    nanocbor_fmt_null(&enc);
+
+    nanocbor_value_t val;
+
+    // simple(0)
+    static const uint8_t initial_table[] = { 0xE0 };
+    nanocbor_decoder_init_packed_table(&val, initial_table, sizeof(initial_table), table, nanocbor_encoded_len(&enc));
+    CU_ASSERT_EQUAL(nanocbor_get_null(&val), NANOCBOR_OK);
+}
+
 static void test_packed_undefined_table(void)
 {
     nanocbor_value_t val;
@@ -563,6 +579,10 @@ const test_t tests_decoder_packed[] = {
     {
         .f = test_packed_reference_by_tag,
         .n = "CBOR packed reference by tag 6 test",
+    },
+    {
+        .f = test_packed_initial_table,
+        .n = "CBOR packed with initial table setup test",
     },
     {
         .f = test_packed_undefined_table,
