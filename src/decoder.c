@@ -35,6 +35,7 @@ void nanocbor_decoder_init(nanocbor_value_t *value, const uint8_t *buf,
 }
 
 #if NANOCBOR_DECODE_PACKED_ENABLED
+// todo: allow passing buf+len as initial table setup
 void nanocbor_decoder_init_packed(nanocbor_value_t *value, const uint8_t *buf,
                            size_t len)
 {
@@ -163,7 +164,7 @@ static inline void _packed_copy_tables(nanocbor_value_t *dest, const nanocbor_va
 
 static inline int _packed_consume_table(nanocbor_value_t *cvalue, nanocbor_value_t *target, uint8_t limit)
 {
-    uint64_t remaining = cvalue->remaining; // todo: ugly hack, instead replace usage of get_subcbor and skip
+    uint64_t remaining = cvalue->remaining; // todo: ugly hack, instead maybe replace usage of get_subcbor and skip, or use separate nanocbor_value_t for array
     if (*cvalue->cur != (NANOCBOR_TYPE_ARR << NANOCBOR_TYPE_OFFSET | 0x02)) {
         return NANOCBOR_ERR_INVALID_TYPE; // todo: which error code to return here?
     } else {
@@ -195,21 +196,18 @@ static inline int _packed_consume_table(nanocbor_value_t *cvalue, nanocbor_value
 
 static inline int _packed_follow_reference(const nanocbor_value_t *cvalue, nanocbor_value_t *target, uint64_t idx, uint8_t limit)
 {
-    // int ret;
     static const size_t last = NANOCBOR_DECODE_PACKED_NESTED_TABLES_MAX-1;
     for (size_t i=0; i<=last; i++) {
         const struct nanocbor_packed_table *t = &cvalue->shared_item_tables[last-i];
         if (t->start != NULL) {
             // todo: do we really have to store length in B of each table? > probably yes, also for implicit tables added before decoding!
-            // todo: proper error handling everywhere
             nanocbor_decoder_init_packed(target, t->start, t->len);
-            target->flags |= NANOCBOR_DECODER_FLAG_SHARED;
 
             uint64_t table_size = 0;
             /* don't use _get_and_advance_uint64() to avoid packed handling */
             int res = _get_uint64(target, &table_size, NANOCBOR_SIZE_LONG, NANOCBOR_TYPE_ARR);
-            // todo: error handling
-            _advance_if(target, res);
+            if (res < 0) return NANOCBOR_ERR_INVALID_TYPE; // todo: which error code to return?
+            _advance(target, res);
             if (idx < table_size) {
                 for (size_t j=0; j<idx; j++) {
                     res = _skip_limited(target, limit);
@@ -277,7 +275,7 @@ static inline int _packed_follow(nanocbor_value_t *cvalue, nanocbor_value_t *tar
                 determination.
             */
             ret = nanocbor_get_int64(cvalue, &n);
-            if (ret != NANOCBOR_OK)
+            if (ret < 0)
                 return NANOCBOR_ERR_INVALID_TYPE; // todo: which error code to return here?
             uint64_t idx = 16 + (n >= 0 ? 2*n : -2*n-1);
             ret = _packed_follow_reference(cvalue, target, idx, limit);
@@ -301,18 +299,18 @@ static inline int _packed_follow(nanocbor_value_t *cvalue, nanocbor_value_t *tar
     return NANOCBOR_NOT_FOUND;
 }
 
-// todo: think about somehow saving start only at top-level call - or not saving it at all?
+// todo: think about somehow saving cur only at top-level call - or not saving it at all?
 #if NANOCBOR_DECODE_PACKED_ENABLED
 #define _PACKED_FOLLOW(cvalue, limit, func) do {        \
     if (limit == 0) {                                   \
         return NANOCBOR_ERR_RECURSION;                  \
     }                                                   \
     nanocbor_value_t followed;                          \
-    const uint8_t *start = cvalue->cur;                 \
+    const uint8_t *cur = cvalue->cur;                   \
     int res = _packed_follow(cvalue, &followed, limit); \
     if (res == NANOCBOR_OK) {                           \
         res = func;                                     \
-        if (res < 0) cvalue->cur = start;               \
+        if (res < 0) cvalue->cur = cur;                 \
         return res;                                     \
     }                                                   \
     else if (res != NANOCBOR_NOT_FOUND) {               \
@@ -713,28 +711,13 @@ int nanocbor_get_double(nanocbor_value_t *cvalue, double *value)
 static int _enter_container(const nanocbor_value_t *it,
                             nanocbor_value_t *container, uint8_t type, uint8_t limit)
 {
-    // todo: special handling of packed for _enter_container is not great, can this somehow be consolidated with _PACKED_FOLLOW?
-    if (limit == 0) {
-        return NANOCBOR_ERR_RECURSION;
-    }
+    /* temporary copy needed to keep *it const */
+    nanocbor_value_t tmp = *it;
+    _PACKED_FOLLOW((&tmp), limit, _enter_container(&followed, container, type, limit-1));
     if (_packed_enabled(it)) {
-        _packed_copy_tables(container, it);
-
-        // todo: additional nanocbor_value_t which is only needed because `it` is const
-        // todo: getting rid of const would avoid repeated/additional skip in leave_container, too
-        nanocbor_value_t tmp = *it;
-        nanocbor_value_t followed;
-        int res = _packed_follow(&tmp, &followed, limit);
-        if (res == NANOCBOR_OK) {
-            int res = _enter_container(&followed, container, type, limit-1);
-            container->flags |= (followed.flags & NANOCBOR_DECODER_FLAG_SHARED) ? NANOCBOR_DECODER_FLAG_SHARED : 0;
-            return res;
-        }
-        if (res != NANOCBOR_NOT_FOUND) {
-            return res;
-        }
-
-        container->flags = NANOCBOR_DECODER_FLAG_PACKED_SUPPORT;
+        _packed_copy_tables(container, &tmp);
+        /* mark container as being top-level shared item it _enter_container has been called recursively */
+        container->flags = NANOCBOR_DECODER_FLAG_PACKED_SUPPORT | (limit < NANOCBOR_RECURSION_MAX ? NANOCBOR_DECODER_FLAG_SHARED : 0);
     }
     else {
         container->flags = 0;

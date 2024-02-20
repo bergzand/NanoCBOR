@@ -291,9 +291,9 @@ static void test_packed_within_map(void)
 static void test_packed_within_tag(void)
 {
     nanocbor_value_t val, val2;
+    uint32_t tag;
 
     // 41(113([[null], [simple(0)]]))
-    uint32_t tag;
     static const uint8_t within_tag[] = { 0xD8, 0x29, 0xD8, 0x71, 0x82, 0x81, 0xF6, 0x81, 0xE0 };
     nanocbor_decoder_init_packed(&val, within_tag, sizeof(within_tag));
     CU_ASSERT_EQUAL(nanocbor_get_tag(&val, &tag), NANOCBOR_OK);
@@ -373,6 +373,26 @@ static void test_packed_table_within_array(void)
     CU_ASSERT_EQUAL(nanocbor_array_items_remaining(&val2), 2);
     CU_ASSERT_EQUAL(nanocbor_get_bool(&val2, &b), NANOCBOR_OK);
     CU_ASSERT_EQUAL(b, false);
+    CU_ASSERT_EQUAL(nanocbor_get_bool(&val2, &b), NANOCBOR_OK);
+    CU_ASSERT_EQUAL(b, true);
+    CU_ASSERT_EQUAL(nanocbor_at_end(&val2), true);
+    CU_ASSERT_EQUAL(nanocbor_leave_container(&val, &val2), NANOCBOR_OK);
+    CU_ASSERT_EQUAL(nanocbor_at_end(&val), true);
+}
+
+static void test_packed_reference_by_tag(void)
+{
+    nanocbor_value_t val, val2;
+    bool b;
+
+    // 113([[0,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,true,null], [6(0), 6(-1), 6(simple(0))]])
+    static const uint8_t reference_by_tag[] = { 0xD8, 0x71, 0x82, 0x92, 0x00, 0xF4, 0xF4, 0xF4, 0xF4, 0xF4, 0xF4, 0xF4, 0xF4, 0xF4, 0xF4, 0xF4, 0xF4, 0xF4, 0xF4, 0xF4, 0xF5, 0xF6, 0x83, 0xC6, 0x00, 0xC6, 0x20, 0xC6, 0xE0 };
+    nanocbor_decoder_init_packed(&val, reference_by_tag, sizeof(reference_by_tag));
+    CU_ASSERT_EQUAL(nanocbor_enter_array(&val, &val2), NANOCBOR_OK);
+    CU_ASSERT_EQUAL(nanocbor_array_items_remaining(&val2), 3);
+    CU_ASSERT_EQUAL(nanocbor_get_bool(&val2, &b), NANOCBOR_OK);
+    CU_ASSERT_EQUAL(b, true);
+    CU_ASSERT_EQUAL(nanocbor_get_null(&val2), NANOCBOR_OK);
     CU_ASSERT_EQUAL(nanocbor_get_bool(&val2, &b), NANOCBOR_OK);
     CU_ASSERT_EQUAL(b, true);
     CU_ASSERT_EQUAL(nanocbor_at_end(&val2), true);
@@ -539,6 +559,10 @@ const test_t tests_decoder_packed[] = {
     {
         .f = test_packed_table_within_array,
         .n = "CBOR packed table definition within array test",
+    },
+    {
+        .f = test_packed_reference_by_tag,
+        .n = "CBOR packed reference by tag 6 test",
     },
     {
         .f = test_packed_undefined_table,
