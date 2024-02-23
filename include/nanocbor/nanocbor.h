@@ -30,8 +30,8 @@
 #ifndef NANOCBOR_NANOCBOR_H
 #define NANOCBOR_NANOCBOR_H
 
+#include <inttypes.h>
 #include <stdbool.h>
-#include <stdint.h>
 #include <stdlib.h>
 
 #ifdef __cplusplus
