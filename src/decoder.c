@@ -174,31 +174,27 @@ static inline void _packed_copy_tables(nanocbor_value_t *dest, const nanocbor_va
 
 static inline int _packed_consume_table(nanocbor_value_t *cvalue, nanocbor_value_t *target, uint8_t limit)
 {
-    uint64_t remaining = cvalue->remaining; // todo: ugly hack, instead maybe replace usage of get_subcbor and skip, or use separate nanocbor_value_t for array
-    // todo: table might be encoded as indefinite length one? > ask on mailing list / Github?
-    if (*cvalue->cur != (NANOCBOR_TYPE_ARR << NANOCBOR_TYPE_OFFSET | 0x02)) {
-        return NANOCBOR_ERR_INVALID_TYPE; // todo: which error code to return here?
-    } else {
-        cvalue->cur += 1;
-    }
-
-    int ret;
-    nanocbor_decoder_init_packed(target, cvalue->cur, cvalue->end - cvalue->cur);
-    _packed_copy_tables(target, cvalue);
+    nanocbor_value_t arr;
+    int ret = nanocbor_enter_array(cvalue, &arr);
+    nanocbor_decoder_init_packed(target, arr.cur, arr.end - arr.cur);
+    _packed_copy_tables(target, &arr);
     for (size_t i=0; i<NANOCBOR_DECODE_PACKED_NESTED_TABLES_MAX; i++) {
         struct nanocbor_packed_table *t = &target->shared_item_tables[i];
         if (t->start == NULL) {
-            // todo: instead of get_subcbor, use _skip_limited directly to pass down limit
-            ret = nanocbor_get_subcbor(cvalue, &t->start, &t->len);
+            t->start = arr.cur;
+            ret = _skip_limited(&arr, limit-1);
             if (ret != NANOCBOR_OK) {
                 return NANOCBOR_ERR_INVALID_TYPE; // todo: which error code to return here?
             }
-            // todo: will this break if rump is array? > shouldn't if skip behaves correctly
-            // this should in theory allow to fix leave_container if array inside table -> check for flag, then no-op
-            // skip rump, too
-            _skip_limited(cvalue, limit);
-            _advance(target, t->len);
-            cvalue->remaining = remaining-1;
+            t->len = arr.cur - t->start;
+            /* set target to rump */
+            target->cur = arr.cur;
+            ret = _skip_limited(&arr, limit-1);
+            if (ret != NANOCBOR_OK) {
+                return NANOCBOR_ERR_INVALID_TYPE; // todo: which error code to return here?
+            }
+            target->end = arr.cur;
+            nanocbor_leave_container(cvalue, &arr);
             return NANOCBOR_OK;
         }
     }

@@ -330,6 +330,17 @@ static void test_packed_indefinite_length_table(void)
     CU_ASSERT_EQUAL(nanocbor_at_end(&val), true);
 }
 
+static void test_packed_indefinite_length_array(void)
+{
+    nanocbor_value_t val;
+
+    // 113([[null], simple(0)])
+    static const uint8_t indefinite_length_array[] = { 0xD8, 0x71, 0x9F, 0x81, 0xF6, 0xE0, 0xFF };
+    nanocbor_decoder_init_packed(&val, indefinite_length_array, sizeof(indefinite_length_array));
+    CU_ASSERT_EQUAL(nanocbor_get_null(&val), NANOCBOR_OK);
+    CU_ASSERT_EQUAL(nanocbor_at_end(&val), true);
+}
+
 static void test_packed_indirection(void)
 {
     nanocbor_value_t val;
@@ -587,6 +598,10 @@ const test_t tests_decoder_packed[] = {
     {
         .f = test_packed_indefinite_length_table,
         .n = "CBOR packed shared item table with indefinite length test",
+    },
+    {
+        .f = test_packed_indefinite_length_array,
+        .n = "CBOR packed shared item table setup with indefinite length test",
     },
     {
         .f = test_packed_indirection,
