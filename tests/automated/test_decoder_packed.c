@@ -107,6 +107,19 @@ static void test_packed_float(void)
     CU_ASSERT_EQUAL(nanocbor_at_end(&val), true);
 }
 
+static void test_packed_simple(void)
+{
+    nanocbor_value_t val;
+    uint8_t num;
+
+    // 113([[simple(255)], simple(0)])
+    static const uint8_t simple[] = { 0xD8, 0x71, 0x82, 0x81, 0xF8, 0xFF, 0xE0 };
+    nanocbor_decoder_init_packed(&val, simple, sizeof(simple));
+    CU_ASSERT_EQUAL(nanocbor_get_simple(&val, &num), NANOCBOR_OK);
+    CU_ASSERT_EQUAL(num, 255);
+    CU_ASSERT_EQUAL(nanocbor_at_end(&val), true);
+}
+
 static void test_packed_undefined(void)
 {
     nanocbor_value_t val;
@@ -511,6 +524,10 @@ const test_t tests_decoder_packed[] = {
     {
         .f = test_packed_float,
         .n = "CBOR packed float test",
+    },
+    {
+        .f = test_packed_simple,
+        .n = "CBOR packed generic simple value test",
     },
     {
         .f = test_packed_undefined,

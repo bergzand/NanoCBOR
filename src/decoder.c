@@ -210,7 +210,7 @@ static inline int _packed_follow_reference(const nanocbor_value_t *cvalue, nanoc
     for (size_t i=0; i<=last; i++) {
         const struct nanocbor_packed_table *t = &cvalue->shared_item_tables[last-i];
         if (t->start != NULL) {
-            // todo: do we really have to store length in B of each table? > probably yes, also for implicit tables added before decoding!
+            // todo: do we really have to store length in B of each table? > probably yes, also for implicit table added before decoding!
             nanocbor_decoder_init_packed(target, t->start, t->len);
 
             uint64_t table_size = 0;
@@ -588,8 +588,6 @@ int nanocbor_get_undefined(nanocbor_value_t *cvalue)
 
 int nanocbor_get_simple(nanocbor_value_t *cvalue, uint8_t *value)
 {
-    // todo: test packed support for simple, should be automatically provided by _get_and_advance_uint8
-
     int res = _get_and_advance_uint8(cvalue, value, NANOCBOR_TYPE_FLOAT, NANOCBOR_RECURSION_MAX);
     if (res == NANOCBOR_ERR_OVERFLOW) {
         res = NANOCBOR_ERR_INVALID_TYPE;
