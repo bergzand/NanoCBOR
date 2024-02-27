@@ -175,6 +175,7 @@ static inline void _packed_copy_tables(nanocbor_value_t *dest, const nanocbor_va
 static inline int _packed_consume_table(nanocbor_value_t *cvalue, nanocbor_value_t *target, uint8_t limit)
 {
     uint64_t remaining = cvalue->remaining; // todo: ugly hack, instead maybe replace usage of get_subcbor and skip, or use separate nanocbor_value_t for array
+    // todo: table might be encoded as indefinite length one? > ask on mailing list / Github?
     if (*cvalue->cur != (NANOCBOR_TYPE_ARR << NANOCBOR_TYPE_OFFSET | 0x02)) {
         return NANOCBOR_ERR_INVALID_TYPE; // todo: which error code to return here?
     } else {
@@ -187,7 +188,7 @@ static inline int _packed_consume_table(nanocbor_value_t *cvalue, nanocbor_value
     for (size_t i=0; i<NANOCBOR_DECODE_PACKED_NESTED_TABLES_MAX; i++) {
         struct nanocbor_packed_table *t = &target->shared_item_tables[i];
         if (t->start == NULL) {
-            // todo: API-facing function might break
+            // todo: instead of get_subcbor, use _skip_limited directly to pass down limit
             ret = nanocbor_get_subcbor(cvalue, &t->start, &t->len);
             if (ret != NANOCBOR_OK) {
                 return NANOCBOR_ERR_INVALID_TYPE; // todo: which error code to return here?
@@ -210,15 +211,24 @@ static inline int _packed_follow_reference(const nanocbor_value_t *cvalue, nanoc
     for (size_t i=0; i<=last; i++) {
         const struct nanocbor_packed_table *t = &cvalue->shared_item_tables[last-i];
         if (t->start != NULL) {
-            // todo: do we really have to store length in B of each table? > probably yes, also for implicit table added before decoding!
             nanocbor_decoder_init_packed(target, t->start, t->len);
 
+            int res;
             uint64_t table_size = 0;
-            // todo: table might be of indefinite length?
-            /* don't use _get_and_advance_uint64() to avoid packed handling */
-            int res = _get_uint64(target, &table_size, NANOCBOR_SIZE_LONG, NANOCBOR_TYPE_ARR);
-            if (res < 0) return NANOCBOR_ERR_INVALID_TYPE; // todo: which error code to return?
-            _advance(target, res);
+            /* account for indefinite length table */
+            if (*target->cur == (uint8_t)((NANOCBOR_TYPE_ARR << NANOCBOR_TYPE_OFFSET) | NANOCBOR_SIZE_INDEFINITE)) {
+                table_size = UINT64_MAX;
+                /* cannot use _advance() since it would decrement remaining */
+                target->cur += 1;
+            }
+            else {
+                /* don't use _get_and_advance_uint64() to avoid packed handling */
+                res = _get_uint64(target, &table_size, NANOCBOR_SIZE_LONG, NANOCBOR_TYPE_ARR);
+                if (res < 0) return NANOCBOR_ERR_INVALID_TYPE; // todo: which error code to return?
+                /* cannot use _advance() since it would decrement remaining */
+                target->cur += res;
+            }
+
             if (idx < table_size) {
                 for (size_t j=0; j<idx; j++) {
                     res = _skip_limited(target, limit);

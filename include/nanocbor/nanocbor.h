@@ -740,6 +740,11 @@ nanocbor_map_items_remaining(const nanocbor_value_t *value)
     return nanocbor_container_remaining(value)/2;
 }
 
+static inline bool nanocbor_in_container(const nanocbor_value_t *container)
+{
+    return container->flags & (NANOCBOR_DECODER_FLAG_CONTAINER);
+}
+
 /**
  * @brief Check whether a container is an indefinite-length container
  *
@@ -752,14 +757,8 @@ nanocbor_map_items_remaining(const nanocbor_value_t *value)
 static inline bool
 nanocbor_container_indefinite(const nanocbor_value_t *container)
 {
-    return (container->flags
-            == (NANOCBOR_DECODER_FLAG_INDEFINITE
-                | NANOCBOR_DECODER_FLAG_CONTAINER));
-}
-
-static inline bool nanocbor_in_container(const nanocbor_value_t *container)
-{
-    return container->flags & (NANOCBOR_DECODER_FLAG_CONTAINER);
+    return nanocbor_in_container(container) &&
+        container->flags & (NANOCBOR_DECODER_FLAG_INDEFINITE);
 }
 
 /** @} */
