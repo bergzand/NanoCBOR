@@ -13,6 +13,7 @@
 // todo: decide on const for nanocbor_get_type / nanocbor_enter_*
 // todo: decide on and implement correct semantics in case of error (is cvalue supposed to be unchanged or not?)
 // todo: implement and test packed for get_type -> will likely break stuff, because used internally
+// todo: check return value of nanocbor_leave_container in _skip_limited -> add to PR
 
 #if NANOCBOR_DECODE_PACKED_ENABLED
 
@@ -463,7 +464,7 @@ static void test_packed_undefined_table(void)
     // simple(0)
     static const uint8_t undefined_table[] = { 0xE0 };
     nanocbor_decoder_init_packed(&val, undefined_table, sizeof(undefined_table));
-    CU_ASSERT_EQUAL(nanocbor_get_null(&val), NANOCBOR_ERR_INVALID_TYPE); // todo: which error expected?
+    CU_ASSERT_EQUAL(nanocbor_get_null(&val), NANOCBOR_ERR_PACKED_UNDEFINED_REFERENCE);
 }
 
 
@@ -474,7 +475,7 @@ static void test_packed_undefined_reference(void)
     // 113([[], simple(0))
     static const uint8_t undefined_ref[] = { 0xD8, 0x71, 0x82, 0x80, 0xE0 };
     nanocbor_decoder_init_packed(&val, undefined_ref, sizeof(undefined_ref));
-    CU_ASSERT_EQUAL(nanocbor_get_null(&val), NANOCBOR_ERR_INVALID_TYPE); // todo: which error expected?
+    CU_ASSERT_EQUAL(nanocbor_get_null(&val), NANOCBOR_ERR_PACKED_UNDEFINED_REFERENCE);
 }
 
 static void test_packed_loop(void)
@@ -524,7 +525,7 @@ static void test_packed_max_nesting_exceeded(void)
     // 113([[], 113([[], 113([[], 113([[], null])])])])
     static const uint8_t max_nesting_exceeded[] = { 0xD8, 0x71, 0x82, 0x80, 0xD8, 0x71, 0x82, 0x80, 0xD8, 0x71, 0x82, 0x80, 0xD8, 0x71, 0x82, 0x80, 0xF6 };
     nanocbor_decoder_init_packed(&val, max_nesting_exceeded, sizeof(max_nesting_exceeded));
-    CU_ASSERT_EQUAL(nanocbor_get_null(&val), NANOCBOR_ERR_RECURSION); // todo: which error expected?
+    CU_ASSERT_EQUAL(nanocbor_get_null(&val), NANOCBOR_ERR_PACKED_MEMORY);
 }
 
 const test_t tests_decoder_packed[] = {

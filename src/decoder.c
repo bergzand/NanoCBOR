@@ -177,7 +177,7 @@ static inline int _packed_consume_table(nanocbor_value_t *cvalue, nanocbor_value
     nanocbor_value_t arr;
     int ret = nanocbor_enter_array(cvalue, &arr);
     if (ret != NANOCBOR_OK) {
-        return NANOCBOR_ERR_INVALID_TYPE; // todo: which error code to return here?
+        return NANOCBOR_ERR_PACKED_FORMAT;
     }
     nanocbor_decoder_init_packed(target, arr.cur, arr.end - arr.cur);
     _packed_copy_tables(target, &arr);
@@ -187,21 +187,24 @@ static inline int _packed_consume_table(nanocbor_value_t *cvalue, nanocbor_value
             t->start = arr.cur;
             ret = _skip_limited(&arr, limit-1);
             if (ret != NANOCBOR_OK) {
-                return NANOCBOR_ERR_INVALID_TYPE; // todo: which error code to return here?
+                return ret;
             }
             t->len = arr.cur - t->start;
             /* set target to rump */
             target->cur = arr.cur;
             ret = _skip_limited(&arr, limit-1);
             if (ret != NANOCBOR_OK) {
-                return NANOCBOR_ERR_INVALID_TYPE; // todo: which error code to return here?
+                return ret;
             }
             target->end = arr.cur;
-            nanocbor_leave_container(cvalue, &arr);
+            ret = nanocbor_leave_container(cvalue, &arr);
+            if (ret != NANOCBOR_OK) {
+                return NANOCBOR_ERR_PACKED_FORMAT;
+            }
             return NANOCBOR_OK;
         }
     }
-    return NANOCBOR_ERR_RECURSION; // todo: which error?
+    return NANOCBOR_ERR_PACKED_MEMORY;
 }
 
 static inline int _packed_follow_reference(const nanocbor_value_t *cvalue, nanocbor_value_t *target, uint64_t idx, uint8_t limit)
@@ -215,7 +218,7 @@ static inline int _packed_follow_reference(const nanocbor_value_t *cvalue, nanoc
 
             int res;
             res = nanocbor_enter_array(&table, target);
-            if (res < 0) return NANOCBOR_ERR_INVALID_TYPE; // todo: which error code to return?
+            if (res < 0) return NANOCBOR_ERR_PACKED_FORMAT;
             uint32_t table_size = nanocbor_container_indefinite(target) ? UINT32_MAX : nanocbor_array_items_remaining(target);
             if (idx < table_size) {
                 for (size_t j=0; j<idx; j++) {
@@ -244,7 +247,7 @@ static inline int _packed_follow_reference(const nanocbor_value_t *cvalue, nanoc
         An unpacker SHOULD document which of these two alternatives has been chosen.
         CBOR based protocols that include the use of packed CBOR MAY require that unpacking errors are tolerated in some positions.
     */
-    return NANOCBOR_ERR_INVALID_TYPE; // todo: which error code to return here?
+    return NANOCBOR_ERR_PACKED_UNDEFINED_REFERENCE;
 }
 
 static inline int _packed_follow(nanocbor_value_t *cvalue, nanocbor_value_t *target, uint8_t limit)
@@ -281,7 +284,7 @@ static inline int _packed_follow(nanocbor_value_t *cvalue, nanocbor_value_t *tar
             cvalue->cur += ret;
             ret = nanocbor_get_int64(cvalue, &n);
             if (ret < 0)
-                return NANOCBOR_ERR_INVALID_TYPE; // todo: which error code to return here?
+                return NANOCBOR_ERR_PACKED_FORMAT;
             uint64_t idx = 16 + (n >= 0 ? 2*n : -2*n-1);
             ret = _packed_follow_reference(cvalue, target, idx, limit);
             if (ret != NANOCBOR_OK) {

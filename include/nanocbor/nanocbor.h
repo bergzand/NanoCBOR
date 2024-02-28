@@ -139,6 +139,28 @@ typedef enum {
      * @brief Decoder could not find the requested entry
      */
     NANOCBOR_NOT_FOUND = -5,
+
+    /**
+     * @brief Decoder encountered an erroneous packed CBOR encoding
+     * @note only returned when @ref NANOCBOR_DECODE_PACKED_ENABLED is set to 1
+     */
+    NANOCBOR_ERR_PACKED_FORMAT = -6,
+
+    /**
+     * @brief Decoder failed to decode a packed CBOR encoding because it ran out of memory
+     *
+     * This can happen if the nesting level of packed tables
+     * is higher than @ref NANOCBOR_DECODE_PACKED_NESTED_TABLES_MAX.
+     *
+     * @note only returned when @ref NANOCBOR_DECODE_PACKED_ENABLED is set to 1
+     */
+    NANOCBOR_ERR_PACKED_MEMORY = -7,
+
+    /**
+     * @brief Decoder encountered an undefined reference
+     * @note only returned when @ref NANOCBOR_DECODE_PACKED_ENABLED is set to 1
+     */
+    NANOCBOR_ERR_PACKED_UNDEFINED_REFERENCE = -8,
 } nanocbor_error_t;
 
 /**
