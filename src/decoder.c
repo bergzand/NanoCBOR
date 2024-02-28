@@ -9,6 +9,7 @@
  * @brief   Minimalistic CBOR decoder implementation
  *
  * @author  Koen Zandberg <koen@bergzand.net>
+ * @author  Mikolai Gütschow <mikolai.guetschow@tu-dresden.de>
  * @}
  */
 
@@ -54,14 +55,6 @@ void nanocbor_decoder_init_packed_table(nanocbor_value_t *value, const uint8_t *
     }
     value->num_active_tables = 1;
 }
-
-/* forward declarations of functions used by packed CBOR handling */
-static int _get_and_advance_int64(nanocbor_value_t *cvalue, int64_t *value,
-                                  uint8_t max, uint64_t bound, uint8_t limit);
-static int _enter_container(const nanocbor_value_t *it,
-                            nanocbor_value_t *container, uint8_t type, uint8_t limit, bool recursive);
-static int _leave_container(nanocbor_value_t *it, nanocbor_value_t *container, uint8_t limit);
-static int _skip_limited(nanocbor_value_t *it, uint8_t limit);
 #endif
 
 
@@ -184,6 +177,14 @@ static inline void _packed_restore(nanocbor_value_t *value, const uint8_t **cur,
     value->remaining = *remaining;
     value->num_active_tables = *num_active_tables;
 }
+
+/* forward declarations of functions used by packed CBOR handling */
+static int _get_and_advance_int64(nanocbor_value_t *cvalue, int64_t *value,
+                                  uint8_t max, uint64_t bound, uint8_t limit);
+static int _enter_container(const nanocbor_value_t *it,
+                            nanocbor_value_t *container, uint8_t type, uint8_t limit, bool recursive);
+static int _leave_container(nanocbor_value_t *it, nanocbor_value_t *container, uint8_t limit);
+static int _skip_limited(nanocbor_value_t *it, uint8_t limit);
 
 /**
  * Check whether packed CBOR decoding is enabled for the given @p value.
@@ -406,6 +407,8 @@ static int _packed_handle(nanocbor_value_t *cvalue, nanocbor_value_t *target, ui
  * 3. if no supported packed CBOR data item was found, execution continues within the enclosing function
  *
  * Recursion is bounded as long as @p limit is decreased by one in the recursive function call.
+ *
+ * If the packed CBOR handling is aborted due to an error, the state of @p cvalue is undefined.
  *
  * @param       cvalue  decoder context
  * @param       limit   recursion limit
