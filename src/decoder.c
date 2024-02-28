@@ -164,6 +164,20 @@ static int _get_uint64(const nanocbor_value_t *cvalue, uint64_t *value,
 }
 
 #if NANOCBOR_DECODE_PACKED_ENABLED
+// todo: backup and restore currently unused
+static inline void _packed_backup(const nanocbor_value_t *value, const uint8_t **cur, uint64_t *remaining, uint8_t *num_active_tables)
+{
+    *cur = value->cur;
+    *remaining = value->remaining;
+    *num_active_tables = value->num_active_tables;
+}
+static inline void _packed_restore(nanocbor_value_t *value, const uint8_t **cur, const uint64_t *remaining, const uint8_t *num_active_tables)
+{
+    value->cur = *cur;
+    value->remaining = *remaining;
+    value->num_active_tables = *num_active_tables;
+}
+
 static inline bool _packed_enabled(const nanocbor_value_t *value)
 {
     return NANOCBOR_DECODE_PACKED_ENABLED && (value->flags & NANOCBOR_DECODER_FLAG_PACKED_SUPPORT) != 0;
@@ -327,60 +341,51 @@ static int _get_and_advance_uint8(nanocbor_value_t *cvalue, uint8_t *value,
     return _advance_if(cvalue, res);
 }
 
-static int _get_and_advance_uint16(nanocbor_value_t *cvalue, uint16_t *value,
-                                   int type, uint8_t limit)
-{
-    _PACKED_FOLLOW(cvalue, limit, _get_and_advance_uint16(&followed, value, type, limit-1));
-
-    uint64_t tmp = 0;
-    int res = _get_uint64(cvalue, &tmp, NANOCBOR_SIZE_SHORT, type);
-    *value = (uint16_t)tmp;
-
-    return _advance_if(cvalue, res);
-}
-
-static int _get_and_advance_uint32(nanocbor_value_t *cvalue, uint32_t *value,
-                                   int type, uint8_t limit)
-{
-    _PACKED_FOLLOW(cvalue, limit, _get_and_advance_uint32(&followed, value, type, limit-1));
-
-    uint64_t tmp = 0;
-    int res = _get_uint64(cvalue, &tmp, NANOCBOR_SIZE_WORD, type);
-    *value = tmp;
-
-    return _advance_if(cvalue, res);
-}
-
-static int _get_and_advance_uint64(nanocbor_value_t *cvalue, uint64_t *value,
-                                   int type, uint8_t limit)
-{
-    _PACKED_FOLLOW(cvalue, limit, _get_and_advance_uint64(&followed, value, type, limit-1));
-
-    uint64_t tmp = 0;
-    int res = _get_uint64(cvalue, &tmp, NANOCBOR_SIZE_LONG, type);
-    *value = tmp;
-
-    return _advance_if(cvalue, res);
-}
-
 int nanocbor_get_uint8(nanocbor_value_t *cvalue, uint8_t *value)
 {
     return _get_and_advance_uint8(cvalue, value, NANOCBOR_TYPE_UINT, NANOCBOR_RECURSION_MAX);
 }
 
+static int _get_and_advance_uint64(nanocbor_value_t *cvalue, uint64_t *value,
+                                  uint8_t max, uint8_t limit)
+{
+    _PACKED_FOLLOW(cvalue, limit, _get_and_advance_uint64(&followed, value, max, limit-1));
+
+    int res = _get_uint64(cvalue, value, max, NANOCBOR_TYPE_UINT);
+    return _advance_if(cvalue, res);
+}
+
 int nanocbor_get_uint16(nanocbor_value_t *cvalue, uint16_t *value)
 {
-    return _get_and_advance_uint16(cvalue, value, NANOCBOR_TYPE_UINT, NANOCBOR_RECURSION_MAX);
+    uint64_t tmp = 0;
+    int res
+        = _get_and_advance_uint64(cvalue, &tmp, NANOCBOR_SIZE_SHORT, NANOCBOR_RECURSION_MAX);
+
+    *value = (uint8_t)tmp;
+
+    return res;
 }
 
 int nanocbor_get_uint32(nanocbor_value_t *cvalue, uint32_t *value)
 {
-    return _get_and_advance_uint32(cvalue, value, NANOCBOR_TYPE_UINT, NANOCBOR_RECURSION_MAX);
+    uint64_t tmp = 0;
+    int res
+        = _get_and_advance_uint64(cvalue, &tmp, NANOCBOR_SIZE_WORD, NANOCBOR_RECURSION_MAX);
+
+    *value = (uint8_t)tmp;
+
+    return res;
 }
 
 int nanocbor_get_uint64(nanocbor_value_t *cvalue, uint64_t *value)
 {
-    return _get_and_advance_uint64(cvalue, value, NANOCBOR_TYPE_UINT, NANOCBOR_RECURSION_MAX);
+    uint64_t tmp = 0;
+    int res
+        = _get_and_advance_uint64(cvalue, &tmp, NANOCBOR_SIZE_LONG, NANOCBOR_RECURSION_MAX);
+
+    *value = (uint8_t)tmp;
+
+    return res;
 }
 
 static int _get_and_advance_int64(nanocbor_value_t *cvalue, int64_t *value,
