@@ -9,11 +9,9 @@
 
 /* NOLINTBEGIN(cppcoreguidelines-avoid-magic-numbers) */
 
-// todo: add and return meaningful error values
 // todo: decide on const for nanocbor_get_type / nanocbor_enter_*
-// todo: decide on and implement correct semantics in case of error (is cvalue supposed to be unchanged or not?)
+// todo: decide on and implement correct semantics in case of error (is cvalue supposed to be unchanged or not?) -> same could apply to get_decimal_frac() -> extended generic data model of CBOR
 // todo: implement and test packed for get_type -> will likely break stuff, because used internally
-// todo: check return value of nanocbor_leave_container in _skip_limited -> add to PR
 
 #if NANOCBOR_DECODE_PACKED_ENABLED
 
@@ -336,6 +334,17 @@ static void test_packed_indefinite_length_table(void)
     CU_ASSERT_EQUAL(nanocbor_at_end(&val), true);
 }
 
+static void test_packed_indefinite_length_table_nested(void)
+{
+    nanocbor_value_t val;
+
+    // 113([[null], 113([[false], simple(1)])])
+    static const uint8_t indefinite_length_table_nested[] = { 0xD8, 0x71, 0x82, 0x81, 0xF6, 0xD8, 0x71, 0x82, 0x9F, 0xF4, 0xFF, 0xE1 };
+    nanocbor_decoder_init_packed(&val, indefinite_length_table_nested, sizeof(indefinite_length_table_nested));
+    CU_ASSERT_EQUAL(nanocbor_get_null(&val), NANOCBOR_OK);
+    CU_ASSERT_EQUAL(nanocbor_at_end(&val), true);
+}
+
 static void test_packed_indefinite_length_array(void)
 {
     nanocbor_value_t val;
@@ -615,6 +624,10 @@ const test_t tests_decoder_packed[] = {
     {
         .f = test_packed_indefinite_length_table,
         .n = "CBOR packed shared item table with indefinite length test",
+    },
+    {
+        .f = test_packed_indefinite_length_table_nested,
+        .n = "CBOR packed nested shared item tables with indefinite length test",
     },
     {
         .f = test_packed_indefinite_length_array,
