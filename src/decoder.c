@@ -40,6 +40,7 @@ void nanocbor_decoder_init_packed(nanocbor_value_t *value, const uint8_t *buf,
 {
     nanocbor_decoder_init(value, buf, len);
     value->flags = NANOCBOR_DECODER_FLAG_PACKED_SUPPORT;
+    value->num_active_tables = 0;
 }
 
 void nanocbor_decoder_init_packed_table(nanocbor_value_t *value, const uint8_t *buf,
@@ -51,6 +52,7 @@ void nanocbor_decoder_init_packed_table(nanocbor_value_t *value, const uint8_t *
         value->shared_item_tables[0].start = table_buf;
         value->shared_item_tables[0].len = table_len;
     }
+    value->num_active_tables = 1;
 }
 #endif
 
@@ -170,6 +172,7 @@ static inline bool _packed_enabled(const nanocbor_value_t *value)
 static inline void _packed_copy_tables(nanocbor_value_t *dest, const nanocbor_value_t *src)
 {
     memcpy(dest->shared_item_tables, src->shared_item_tables, sizeof(dest->shared_item_tables));
+    dest->num_active_tables = src->num_active_tables;
 }
 
 static inline int _packed_consume_table(nanocbor_value_t *cvalue, nanocbor_value_t *target, uint8_t limit)
@@ -181,60 +184,58 @@ static inline int _packed_consume_table(nanocbor_value_t *cvalue, nanocbor_value
     }
     nanocbor_decoder_init_packed(target, arr.cur, arr.end - arr.cur);
     _packed_copy_tables(target, &arr);
-    for (size_t i=0; i<NANOCBOR_DECODE_PACKED_NESTED_TABLES_MAX; i++) {
-        struct nanocbor_packed_table *t = &target->shared_item_tables[i];
-        if (t->start == NULL) {
-            t->start = arr.cur;
-            ret = _skip_limited(&arr, limit-1);
-            if (ret != NANOCBOR_OK) {
-                return ret;
-            }
-            t->len = arr.cur - t->start;
-            /* set target to rump */
-            target->cur = arr.cur;
-            ret = _skip_limited(&arr, limit-1);
-            if (ret != NANOCBOR_OK) {
-                return ret;
-            }
-            target->end = arr.cur;
-            ret = nanocbor_leave_container(cvalue, &arr);
-            if (ret != NANOCBOR_OK) {
-                return NANOCBOR_ERR_PACKED_FORMAT;
-            }
-            return NANOCBOR_OK;
-        }
+    if (target->num_active_tables >= NANOCBOR_DECODE_PACKED_NESTED_TABLES_MAX) {
+        return NANOCBOR_ERR_PACKED_MEMORY;
     }
-    return NANOCBOR_ERR_PACKED_MEMORY;
+
+    struct nanocbor_packed_table *t = &target->shared_item_tables[target->num_active_tables];
+    t->start = arr.cur;
+    ret = _skip_limited(&arr, limit-1);
+    if (ret != NANOCBOR_OK) {
+        return ret;
+    }
+    t->len = arr.cur - t->start;
+    /* set target to rump */
+    target->cur = arr.cur;
+    ret = _skip_limited(&arr, limit-1);
+    if (ret != NANOCBOR_OK) {
+        return ret;
+    }
+    target->end = arr.cur;
+    ret = nanocbor_leave_container(cvalue, &arr);
+    if (ret != NANOCBOR_OK) {
+        return NANOCBOR_ERR_PACKED_FORMAT;
+    }
+    target->num_active_tables++;
+    return NANOCBOR_OK;
 }
 
 static inline int _packed_follow_reference(const nanocbor_value_t *cvalue, nanocbor_value_t *target, uint64_t idx, uint8_t limit)
 {
-    static const size_t last = NANOCBOR_DECODE_PACKED_NESTED_TABLES_MAX-1;
-    for (size_t i=0; i<=last; i++) {
-        const struct nanocbor_packed_table *t = &cvalue->shared_item_tables[last-i];
-        if (t->start != NULL) {
-            nanocbor_value_t table;
-            nanocbor_decoder_init_packed(&table, t->start, t->len);
+    const size_t num = cvalue->num_active_tables;
+    for (size_t i=0; i<num; i++) {
+        const struct nanocbor_packed_table *t = &cvalue->shared_item_tables[num-1-i];
+        if (t->start == NULL) {
+            return NANOCBOR_ERR_PACKED_FORMAT; // todo: actually internal error
+        }
+        nanocbor_value_t table;
+        nanocbor_decoder_init_packed(&table, t->start, t->len);
 
-            int res;
-            res = nanocbor_enter_array(&table, target);
-            if (res < 0) return NANOCBOR_ERR_PACKED_FORMAT;
-            uint32_t table_size = nanocbor_container_indefinite(target) ? UINT32_MAX : nanocbor_array_items_remaining(target);
-            if (idx < table_size) {
-                for (size_t j=0; j<idx; j++) {
-                    res = _skip_limited(target, limit);
-                    if (res < 0) return res;
-                }
-                /* copy all common tables, i.e., ones that were defined up to and including i */
-                // todo. rephrase comment
-                _packed_copy_tables(target, cvalue);
-                for (size_t j=last-i+1; j<=last; j++) {
-                    target->shared_item_tables[j].start = NULL;
-                }
-                return NANOCBOR_OK;
-            } else {
-                idx -= table_size;
+        int res;
+        res = nanocbor_enter_array(&table, target);
+        if (res < 0) return NANOCBOR_ERR_PACKED_FORMAT;
+        uint32_t table_size = nanocbor_container_indefinite(target) ? UINT32_MAX : nanocbor_array_items_remaining(target);
+        if (idx < table_size) {
+            for (size_t j=0; j<idx; j++) {
+                res = _skip_limited(target, limit);
+                if (res < 0) return res;
             }
+            /* copy all common tables, i.e., ones that were defined up to and including i */
+            _packed_copy_tables(target, cvalue);
+            target->num_active_tables = num-i;
+            return NANOCBOR_OK;
+        } else {
+            idx -= table_size;
         }
     }
     /* idx not within current tables */
@@ -290,7 +291,7 @@ static inline int _packed_follow(nanocbor_value_t *cvalue, nanocbor_value_t *tar
     }
     return NANOCBOR_NOT_FOUND;
 }
-// todo: cvalue might be changed before an error is encountered, therefore cur is saved and reset - this does not reset remaining though!
+// todo: consider rewind on error (backup curr, remaining, packed tables (max index stored in nanocbor_value_t?), restore on error)
 #define _PACKED_FOLLOW(cvalue, limit, func) do {        \
     if (limit == 0) {                                   \
         return NANOCBOR_ERR_RECURSION;                  \

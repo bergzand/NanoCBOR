@@ -172,9 +172,10 @@ typedef struct nanocbor_value {
     uint64_t remaining; /**< Number of items remaining in the container */
     uint8_t flags;      /**< Flags for decoding hints                   */
 #if NANOCBOR_DECODE_PACKED_ENABLED
+    uint8_t num_active_tables;  /**< Number of tables in active table set */
     struct nanocbor_packed_table {
         const uint8_t *start;   /**< Start of table definition, NULL if non-existent */
-        size_t len;             /**< Length in bytes of table definition*/
+        size_t len;             /**< Length in bytes of table definition */
     } shared_item_tables[NANOCBOR_DECODE_PACKED_NESTED_TABLES_MAX];
 #endif
 } nanocbor_value_t;
