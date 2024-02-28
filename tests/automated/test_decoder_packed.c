@@ -9,7 +9,12 @@
 
 /* NOLINTBEGIN(cppcoreguidelines-avoid-magic-numbers) */
 
-// todo: implement packed for get_type -> will likely break stuff, because used internally
+// todo: add and return meaningful error values
+// todo: decide on const for nanocbor_get_type / nanocbor_enter_*
+// todo: decide on and implement correct semantics in case of error (is cvalue supposed to be unchanged or not?)
+// todo: implement and test packed for get_type -> will likely break stuff, because used internally
+
+#if NANOCBOR_DECODE_PACKED_ENABLED
 
 static void test_packed_enable(void)
 {
@@ -656,5 +661,16 @@ const test_t tests_decoder_packed[] = {
         .n = NULL,
     },
 };
+
+#else /* !NANOCBOR_DECODE_PACKED_ENABLED */
+
+const test_t tests_decoder_packed[] = {
+    {
+        .f = NULL,
+        .n = NULL,
+    },
+};
+
+#endif
 
 /* NOLINTEND(cppcoreguidelines-avoid-magic-numbers) */

@@ -47,7 +47,7 @@ void nanocbor_decoder_init_packed_table(nanocbor_value_t *value, const uint8_t *
 {
     nanocbor_decoder_init_packed(value, buf, len);
     if (table_buf != NULL && table_len > 0) {
-        // todo: maybe validate content to be CBOR array with limited length as expected
+        // todo: maybe validate content to be CBOR array -> would need return code
         value->shared_item_tables[0].start = table_buf;
         value->shared_item_tables[0].len = table_len;
     }
@@ -161,7 +161,7 @@ static int _get_uint64(const nanocbor_value_t *cvalue, uint64_t *value,
     return (int)(1 + bytes);
 }
 
-
+#if NANOCBOR_DECODE_PACKED_ENABLED
 static inline bool _packed_enabled(const nanocbor_value_t *value)
 {
     return NANOCBOR_DECODE_PACKED_ENABLED && (value->flags & NANOCBOR_DECODER_FLAG_PACKED_SUPPORT) != 0;
@@ -255,8 +255,8 @@ static inline int _packed_follow(nanocbor_value_t *cvalue, nanocbor_value_t *tar
 
     int ret;
     const uint8_t *cur = cvalue->cur;
-    // todo: might break since using API-facing function
     /* cannot use nanocbor_get_tag / nanocbor_get_simple instead to avoid infinite recursion */
+    // todo: might break since using API-facing function
     int ctype = nanocbor_get_type(cvalue);
     if (ctype == NANOCBOR_TYPE_TAG) {
         uint64_t tag = 0;
@@ -304,9 +304,7 @@ static inline int _packed_follow(nanocbor_value_t *cvalue, nanocbor_value_t *tar
     }
     return NANOCBOR_NOT_FOUND;
 }
-
 // todo: cvalue might be changed before an error is encountered, therefore cur is saved and reset - this does not reset remaining though!
-#if NANOCBOR_DECODE_PACKED_ENABLED
 #define _PACKED_FOLLOW(cvalue, limit, func) do {        \
     if (limit == 0) {                                   \
         return NANOCBOR_ERR_RECURSION;                  \
@@ -323,8 +321,11 @@ static inline int _packed_follow(nanocbor_value_t *cvalue, nanocbor_value_t *tar
         return res;                                     \
     }                                                   \
 } while (0)
-#else
-#define _PACKED_FOLLOW(func)
+
+#else /* !NANOCBOR_DECODE_PACKED_ENABLED */
+#define _packed_enabled(v) (false)
+#define _packed_copy_tables(d, s)
+#define _PACKED_FOLLOW(cvalue, limit, func)
 #endif
 
 static int _get_and_advance_uint8(nanocbor_value_t *cvalue, uint8_t *value,
@@ -716,12 +717,13 @@ static int _enter_container(const nanocbor_value_t *it,
                             nanocbor_value_t *container, uint8_t type, uint8_t limit)
 {
     /* temporary copy needed to keep *it const */
-    nanocbor_value_t tmp = *it;
-    _PACKED_FOLLOW((&tmp), limit, _enter_container(&followed, container, type, limit-1));
     if (_packed_enabled(it)) {
+        nanocbor_value_t tmp = *it;
+        _PACKED_FOLLOW((&tmp), limit, _enter_container(&followed, container, type, limit-1));
         _packed_copy_tables(container, &tmp);
         /* mark container as being top-level shared item it _enter_container has been called recursively */
         container->flags = NANOCBOR_DECODER_FLAG_PACKED_SUPPORT | (limit < NANOCBOR_RECURSION_MAX ? NANOCBOR_DECODER_FLAG_SHARED : 0);
+        (void)tmp;
     }
     else {
         container->flags = 0;
