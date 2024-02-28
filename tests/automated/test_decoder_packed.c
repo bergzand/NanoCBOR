@@ -493,16 +493,27 @@ static void test_packed_loop(void)
     static const uint8_t loop[] = { 0xD8, 0x71, 0x82, 0x81, 0xE0, 0xE0 };
     nanocbor_decoder_init_packed(&val, loop, sizeof(loop));
     CU_ASSERT_EQUAL(nanocbor_get_null(&val), NANOCBOR_ERR_RECURSION);
+    nanocbor_decoder_init_packed(&val, loop, sizeof(loop));
     CU_ASSERT_EQUAL(nanocbor_get_undefined(&val), NANOCBOR_ERR_RECURSION);
+    nanocbor_decoder_init_packed(&val, loop, sizeof(loop));
     CU_ASSERT_EQUAL(nanocbor_get_bool(&val, &b), NANOCBOR_ERR_RECURSION);
+    nanocbor_decoder_init_packed(&val, loop, sizeof(loop));
     CU_ASSERT_EQUAL(nanocbor_get_uint8(&val, &u), NANOCBOR_ERR_RECURSION);
+    nanocbor_decoder_init_packed(&val, loop, sizeof(loop));
     CU_ASSERT_EQUAL(nanocbor_get_int8(&val, &i), NANOCBOR_ERR_RECURSION);
+    nanocbor_decoder_init_packed(&val, loop, sizeof(loop));
     CU_ASSERT_EQUAL(nanocbor_get_float(&val, &f), NANOCBOR_ERR_RECURSION);
+    nanocbor_decoder_init_packed(&val, loop, sizeof(loop));
     CU_ASSERT_EQUAL(nanocbor_get_tstr(&val, &buf, &len), NANOCBOR_ERR_RECURSION);
+    nanocbor_decoder_init_packed(&val, loop, sizeof(loop));
     CU_ASSERT_EQUAL(nanocbor_get_bstr(&val, &buf, &len), NANOCBOR_ERR_RECURSION);
+    nanocbor_decoder_init_packed(&val, loop, sizeof(loop));
     CU_ASSERT_EQUAL(nanocbor_get_tag(&val, &t), NANOCBOR_ERR_RECURSION);
+    nanocbor_decoder_init_packed(&val, loop, sizeof(loop));
     CU_ASSERT_EQUAL(nanocbor_get_simple(&val, &u), NANOCBOR_ERR_RECURSION);
+    nanocbor_decoder_init_packed(&val, loop, sizeof(loop));
     CU_ASSERT_EQUAL(nanocbor_enter_array(&val, &val2), NANOCBOR_ERR_RECURSION);
+    nanocbor_decoder_init_packed(&val, loop, sizeof(loop));
     CU_ASSERT_EQUAL(nanocbor_enter_map(&val, &val2), NANOCBOR_ERR_RECURSION);
     // todo: define + implement semantics for get_subcbor?
     // CU_ASSERT_EQUAL(nanocbor_get_subcbor(&val, &buf, &len), NANOCBOR_ERR_RECURSION);

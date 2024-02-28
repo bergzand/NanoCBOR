@@ -226,6 +226,7 @@ static inline int _packed_follow_reference(const nanocbor_value_t *cvalue, nanoc
                     if (res < 0) return res;
                 }
                 /* copy all common tables, i.e., ones that were defined up to and including i */
+                // todo. rephrase comment
                 _packed_copy_tables(target, cvalue);
                 for (size_t j=last-i+1; j<=last; j++) {
                     target->shared_item_tables[j].start = NULL;
@@ -257,7 +258,6 @@ static inline int _packed_follow(nanocbor_value_t *cvalue, nanocbor_value_t *tar
     }
 
     int ret;
-    const uint8_t *cur = cvalue->cur;
     /* cannot use nanocbor_get_tag / nanocbor_get_simple instead to avoid infinite recursion */
     // todo: might break since using API-facing function
     int ctype = nanocbor_get_type(cvalue);
@@ -268,41 +268,24 @@ static inline int _packed_follow(nanocbor_value_t *cvalue, nanocbor_value_t *tar
             return NANOCBOR_NOT_FOUND;
         }
         if (tag == NANOCBOR_TAG_PACKED_TABLE) {
-            /* cannot use _advance() since it would decrement remaining */
             cvalue->cur += ret;
-            ret = _packed_consume_table(cvalue, target, limit);
-            if (ret != NANOCBOR_OK) {
-                /* rewind on error */
-                // todo: this doesn't reset remaining...
-                cvalue->cur = cur;
-            }
-            return ret;
+            return _packed_consume_table(cvalue, target, limit);
         }
         else if (tag == NANOCBOR_TAG_PACKED_REF_SHARED) {
             int64_t n;
-            /* cannot use _advance() since it would decrement remaining */
             cvalue->cur += ret;
             ret = nanocbor_get_int64(cvalue, &n);
             if (ret < 0)
                 return NANOCBOR_ERR_PACKED_FORMAT;
             uint64_t idx = 16 + (n >= 0 ? 2*n : -2*n-1);
-            ret = _packed_follow_reference(cvalue, target, idx, limit);
-            if (ret != NANOCBOR_OK) {
-                /* rewind on error */
-                // todo: this doesn't reset remaining...
-                cvalue->cur = cur;
-            }
-            return ret;
+            return _packed_follow_reference(cvalue, target, idx, limit);
         }
     }
     else if (ctype == NANOCBOR_TYPE_FLOAT) {
         uint8_t simple = *cvalue->cur & NANOCBOR_VALUE_MASK;
         if (simple < 16) {
-            ret = _packed_follow_reference(cvalue, target, simple, limit);
-            if (ret == NANOCBOR_OK) {
-                _advance(cvalue, 1);
-            }
-            return ret;
+            _advance(cvalue, 1);
+            return _packed_follow_reference(cvalue, target, simple, limit);
         }
     }
     return NANOCBOR_NOT_FOUND;
@@ -313,16 +296,16 @@ static inline int _packed_follow(nanocbor_value_t *cvalue, nanocbor_value_t *tar
         return NANOCBOR_ERR_RECURSION;                  \
     }                                                   \
     nanocbor_value_t followed;                          \
-    const uint8_t *cur = cvalue->cur;                   \
     int res = _packed_follow(cvalue, &followed, limit); \
     if (res == NANOCBOR_OK) {                           \
-        res = func;                                     \
-        if (res < 0) cvalue->cur = cur;                 \
-        return res;                                     \
+        /* packed CBOR found, call func recursively */  \
+        return func;                                    \
     }                                                   \
     else if (res != NANOCBOR_NOT_FOUND) {               \
+        /* error during packed CBOR handling */         \
         return res;                                     \
     }                                                   \
+    /* else: no packed CBOR found, continue */          \
 } while (0)
 
 #else /* !NANOCBOR_DECODE_PACKED_ENABLED */
