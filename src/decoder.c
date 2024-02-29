@@ -77,11 +77,6 @@ static inline bool _over_end(const nanocbor_value_t *it)
     return it->cur >= it->end;
 }
 
-static inline uint8_t _get_type(const nanocbor_value_t *value)
-{
-    return (*value->cur & NANOCBOR_TYPE_MASK);
-}
-
 static int _value_match_exact(nanocbor_value_t *cvalue, uint8_t val)
 {
     int res = NANOCBOR_ERR_INVALID_TYPE;
@@ -115,18 +110,18 @@ bool nanocbor_at_end(const nanocbor_value_t *it)
     return end;
 }
 
-int nanocbor_get_type(const nanocbor_value_t *value)
+static inline int __get_type(const nanocbor_value_t *value)
 {
     if (nanocbor_at_end(value)) {
         return NANOCBOR_ERR_END;
     }
-    return (_get_type(value) >> NANOCBOR_TYPE_OFFSET);
+    return ((*value->cur & NANOCBOR_TYPE_MASK) >> NANOCBOR_TYPE_OFFSET);
 }
 
 static int _get_uint64(const nanocbor_value_t *cvalue, uint64_t *value,
                        uint8_t max, int type)
 {
-    int ctype = nanocbor_get_type(cvalue);
+    int ctype = __get_type(cvalue);
 
     if (ctype < 0) {
         return ctype;
@@ -179,6 +174,7 @@ static inline void _packed_restore(nanocbor_value_t *value, const uint8_t **cur,
 }
 
 /* forward declarations of functions used by packed CBOR handling */
+static int _get_type(nanocbor_value_t *cvalue, uint8_t limit);
 static int _get_and_advance_int64(nanocbor_value_t *cvalue, int64_t *value,
                                   uint8_t max, uint64_t bound, uint8_t limit);
 static int _enter_container(const nanocbor_value_t *it,
@@ -244,10 +240,10 @@ static int _packed_consume_table(nanocbor_value_t *cvalue, nanocbor_value_t *tar
     }
 
     struct nanocbor_packed_table *t = &target->shared_item_tables[target->num_active_tables];
-    // todo: this is only valid as soon as nanocbor_get_type supports packed CBOR
-    // if (nanocbor_get_type(&arr) != NANOCBOR_TYPE_ARR) {
-    //     return NANOCBOR_ERR_PACKED_FORMAT;
-    // }
+    ret = _get_type(&arr, limit-1);
+    if (ret != NANOCBOR_TYPE_ARR) {
+        return ret == NANOCBOR_ERR_RECURSION ? ret : NANOCBOR_ERR_PACKED_FORMAT;
+    }
     t->start = arr.cur;
     ret = _skip_limited(&arr, limit-1);
     if (ret != NANOCBOR_OK) {
@@ -263,7 +259,7 @@ static int _packed_consume_table(nanocbor_value_t *cvalue, nanocbor_value_t *tar
     target->end = arr.cur;
     ret = _leave_container(cvalue, &arr, limit-1);
     if (ret != NANOCBOR_OK) {
-        return NANOCBOR_ERR_PACKED_FORMAT;
+        return ret == NANOCBOR_ERR_RECURSION ? ret : NANOCBOR_ERR_PACKED_FORMAT;
     }
     target->num_active_tables++;
     return NANOCBOR_OK;
@@ -360,8 +356,7 @@ static int _packed_handle(nanocbor_value_t *cvalue, nanocbor_value_t *target, ui
 
     int ret;
     /* cannot use nanocbor_get_tag / nanocbor_get_simple instead to avoid infinite recursion */
-    // todo: might break since using API-facing function
-    int ctype = nanocbor_get_type(cvalue);
+    int ctype = __get_type(cvalue);
     if (ctype == NANOCBOR_TYPE_TAG) {
         uint64_t tag = 0;
         ret = _get_uint64(cvalue, &tag, NANOCBOR_SIZE_WORD, NANOCBOR_TYPE_TAG);
@@ -437,6 +432,24 @@ static int _packed_handle(nanocbor_value_t *cvalue, nanocbor_value_t *target, ui
 #define _PACKED_HANDLE(cvalue, limit, func)
 #endif
 
+static int _get_type(nanocbor_value_t *cvalue, uint8_t limit)
+{
+    _PACKED_HANDLE(cvalue, limit, _get_type(&followed, limit-1));
+
+    return __get_type(cvalue);
+}
+
+int nanocbor_get_type(const nanocbor_value_t *value)
+{
+#if NANOCBOR_DECODE_PACKED_ENABLED
+    /* cpy needed to keep *value const */
+    nanocbor_value_t cpy = *value;
+    return _get_type(&cpy, NANOCBOR_RECURSION_MAX);
+#else
+    return __get_type(value);
+#endif
+}
+
 static int _get_and_advance_uint8(nanocbor_value_t *cvalue, uint8_t *value,
                                   int type, uint8_t limit)
 {
@@ -501,7 +514,7 @@ static int _get_and_advance_int64(nanocbor_value_t *cvalue, int64_t *value,
 {
     _PACKED_HANDLE(cvalue, limit, _get_and_advance_int64(&followed, value, max, bound, limit-1));
 
-    int type = nanocbor_get_type(cvalue);
+    int type = __get_type(cvalue);
     if (type < 0) {
         return type;
     }
@@ -818,6 +831,7 @@ static int _enter_container(const nanocbor_value_t *it,
 {
     /* temporary copy needed to keep *it const */
     if (_packed_enabled(it)) {
+        // todo: tmp only needed once at upper level, see get_type
         nanocbor_value_t tmp = *it;
         _PACKED_HANDLE((&tmp), limit, _enter_container(&followed, container, type, limit-1, true));
         _packed_copy_tables(container, &tmp);
@@ -898,7 +912,7 @@ int nanocbor_leave_container(nanocbor_value_t *it, nanocbor_value_t *container)
 
 static int _skip_simple(nanocbor_value_t *it)
 {
-    int type = nanocbor_get_type(it);
+    int type = __get_type(it);
     uint64_t tmp = 0;
     if (type == NANOCBOR_TYPE_BSTR || type == NANOCBOR_TYPE_TSTR) {
         const uint8_t *tmp = NULL;
@@ -930,7 +944,7 @@ static int _skip_limited(nanocbor_value_t *it, uint8_t limit)
     if (limit == 0) {
         return NANOCBOR_ERR_RECURSION;
     }
-    int type = nanocbor_get_type(it);
+    int type = __get_type(it);
     int res = type;
 
     /* map or array */
