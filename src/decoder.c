@@ -432,12 +432,14 @@ static int _packed_handle(nanocbor_value_t *cvalue, nanocbor_value_t *target, ui
 #define _PACKED_HANDLE(cvalue, limit, func)
 #endif
 
+#if NANOCBOR_DECODE_PACKED_ENABLED
 static int _get_type(nanocbor_value_t *cvalue, uint8_t limit)
 {
     _PACKED_HANDLE(cvalue, limit, _get_type(&followed, limit-1));
 
     return __get_type(cvalue);
 }
+#endif
 
 int nanocbor_get_type(const nanocbor_value_t *value)
 {
@@ -868,7 +870,8 @@ int nanocbor_enter_array(const nanocbor_value_t *it, nanocbor_value_t *array)
     nanocbor_value_t cpy = *it;
     return _enter_container(&cpy, array, NANOCBOR_TYPE_ARR, NANOCBOR_RECURSION_MAX-1, false);
 #else
-    return _enter_container(it, array, NANOCBOR_TYPE_ARR, NANOCBOR_RECURSION_MAX, false);
+    /* if packed CBOR is disabled, *it will stay const */
+    return _enter_container((nanocbor_value_t *)it, array, NANOCBOR_TYPE_ARR, NANOCBOR_RECURSION_MAX, false);
 #endif
 }
 
@@ -880,7 +883,8 @@ int nanocbor_enter_map(const nanocbor_value_t *it, nanocbor_value_t *map)
     nanocbor_value_t cpy = *it;
     res = _enter_container(&cpy, map, NANOCBOR_TYPE_MAP, NANOCBOR_RECURSION_MAX-1, false);
 #else
-    res = _enter_container(it, array, NANOCBOR_TYPE_ARR, NANOCBOR_RECURSION_MAX, false);
+    /* if packed CBOR is disabled, *it will stay const */
+    res = _enter_container((nanocbor_value_t *)it, map, NANOCBOR_TYPE_MAP, NANOCBOR_RECURSION_MAX, false);
 #endif
 
     if (map->remaining > UINT64_MAX / 2) {
@@ -896,9 +900,11 @@ static inline int _leave_container(nanocbor_value_t *it, nanocbor_value_t *conta
     if (!nanocbor_in_container(container) || !nanocbor_at_end(container)) {
         return NANOCBOR_ERR_INVALID_TYPE;
     }
+#if NANOCBOR_DECODE_PACKED_ENABLED
     if (container->flags & NANOCBOR_DECODER_FLAG_SHARED) {
         return _skip_limited(it, limit);
     }
+#endif
     if (container->cur <= it->cur || container->cur > it->end) {
         return NANOCBOR_ERR_INVALID_TYPE;
     }
