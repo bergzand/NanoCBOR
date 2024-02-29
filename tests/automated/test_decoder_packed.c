@@ -9,7 +9,6 @@
 
 /* NOLINTBEGIN(cppcoreguidelines-avoid-magic-numbers) */
 
-// todo: decide on const for nanocbor_enter_*
 // todo: decide on and implement correct semantics in case of error (is cvalue supposed to be unchanged or not?) -> same could apply to get_decimal_frac() -> extended generic data model of CBOR
 // todo: decide for + implement semantics for get_subcbor()
 

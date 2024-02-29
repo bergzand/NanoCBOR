@@ -177,7 +177,7 @@ static inline void _packed_restore(nanocbor_value_t *value, const uint8_t **cur,
 static int _get_type(nanocbor_value_t *cvalue, uint8_t limit);
 static int _get_and_advance_int64(nanocbor_value_t *cvalue, int64_t *value,
                                   uint8_t max, uint64_t bound, uint8_t limit);
-static int _enter_container(const nanocbor_value_t *it,
+static int _enter_container(nanocbor_value_t *it,
                             nanocbor_value_t *container, uint8_t type, uint8_t limit, bool recursive);
 static int _leave_container(nanocbor_value_t *it, nanocbor_value_t *container, uint8_t limit);
 static int _skip_limited(nanocbor_value_t *it, uint8_t limit);
@@ -444,7 +444,7 @@ int nanocbor_get_type(const nanocbor_value_t *value)
 #if NANOCBOR_DECODE_PACKED_ENABLED
     /* cpy needed to keep *value const */
     nanocbor_value_t cpy = *value;
-    return _get_type(&cpy, NANOCBOR_RECURSION_MAX);
+    return _get_type(&cpy, NANOCBOR_RECURSION_MAX-1);
 #else
     return __get_type(value);
 #endif
@@ -826,18 +826,14 @@ int nanocbor_get_double(nanocbor_value_t *cvalue, double *value)
     return _get_double(cvalue, value, NANOCBOR_RECURSION_MAX);
 }
 
-static int _enter_container(const nanocbor_value_t *it,
+static int _enter_container(nanocbor_value_t *it,
                             nanocbor_value_t *container, uint8_t type, uint8_t limit, bool recursive)
 {
-    /* temporary copy needed to keep *it const */
     if (_packed_enabled(it)) {
-        // todo: tmp only needed once at upper level, see get_type
-        nanocbor_value_t tmp = *it;
-        _PACKED_HANDLE((&tmp), limit, _enter_container(&followed, container, type, limit-1, true));
-        _packed_copy_tables(container, &tmp);
+        _PACKED_HANDLE(it, limit, _enter_container(&followed, container, type, limit-1, true));
+        _packed_copy_tables(container, it);
         /* mark container as being top-level shared item if _enter_container has been called recursively */
         container->flags = NANOCBOR_DECODER_FLAG_PACKED_SUPPORT | (recursive ? NANOCBOR_DECODER_FLAG_SHARED : 0);
-        (void)tmp;
     }
     else {
         container->flags = 0;
@@ -867,12 +863,25 @@ static int _enter_container(const nanocbor_value_t *it,
 
 int nanocbor_enter_array(const nanocbor_value_t *it, nanocbor_value_t *array)
 {
+#if NANOCBOR_DECODE_PACKED_ENABLED
+    /* cpy needed to keep *it const */
+    nanocbor_value_t cpy = *it;
+    return _enter_container(&cpy, array, NANOCBOR_TYPE_ARR, NANOCBOR_RECURSION_MAX-1, false);
+#else
     return _enter_container(it, array, NANOCBOR_TYPE_ARR, NANOCBOR_RECURSION_MAX, false);
+#endif
 }
 
 int nanocbor_enter_map(const nanocbor_value_t *it, nanocbor_value_t *map)
 {
-    int res = _enter_container(it, map, NANOCBOR_TYPE_MAP, NANOCBOR_RECURSION_MAX, false);
+    int res;
+#if NANOCBOR_DECODE_PACKED_ENABLED
+    /* cpy needed to keep *it const */
+    nanocbor_value_t cpy = *it;
+    res = _enter_container(&cpy, map, NANOCBOR_TYPE_MAP, NANOCBOR_RECURSION_MAX-1, false);
+#else
+    res = _enter_container(it, array, NANOCBOR_TYPE_ARR, NANOCBOR_RECURSION_MAX, false);
+#endif
 
     if (map->remaining > UINT64_MAX / 2) {
         return NANOCBOR_ERR_OVERFLOW;
