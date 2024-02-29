@@ -306,16 +306,18 @@ static void test_packed_within_map(void)
     CU_ASSERT_EQUAL(nanocbor_get_tstr(&val4, &buf, &len), NANOCBOR_OK);
     CU_ASSERT_EQUAL(len, 1);
     CU_ASSERT_NSTRING_EQUAL(buf, "b", len);
-    // CU_ASSERT_EQUAL(nanocbor_leave_container(&val2, &val3), NANOCBOR_OK);
-    // todo: above breaks as leave_container does not check being at the end of it, also below
-    CU_ASSERT_EQUAL(nanocbor_leave_container(&val2, &val4), NANOCBOR_OK);
+    CU_ASSERT_EQUAL(nanocbor_skip(&val3), NANOCBOR_OK);
+    CU_ASSERT_EQUAL(nanocbor_skip(&val3), NANOCBOR_OK);
+    CU_ASSERT_EQUAL(nanocbor_leave_container(&val2, &val3), NANOCBOR_OK);
     CU_ASSERT_EQUAL(nanocbor_enter_map(&val2, &val3), NANOCBOR_OK);
     CU_ASSERT_EQUAL(nanocbor_map_items_remaining(&val3), 1);
     CU_ASSERT_EQUAL(nanocbor_get_key_tstr(&val3, "b", &val4), NANOCBOR_OK);
     CU_ASSERT_EQUAL(nanocbor_get_tstr(&val4, &buf, &len), NANOCBOR_OK);
     CU_ASSERT_EQUAL(len, 1);
     CU_ASSERT_NSTRING_EQUAL(buf, "a", len);
-    CU_ASSERT_EQUAL(nanocbor_leave_container(&val2, &val4), NANOCBOR_OK);
+    CU_ASSERT_EQUAL(nanocbor_skip(&val3), NANOCBOR_OK);
+    CU_ASSERT_EQUAL(nanocbor_skip(&val3), NANOCBOR_OK);
+    CU_ASSERT_EQUAL(nanocbor_leave_container(&val2, &val3), NANOCBOR_OK);
     CU_ASSERT_EQUAL(nanocbor_leave_container(&val, &val2), NANOCBOR_OK);
     CU_ASSERT_EQUAL(nanocbor_at_end(&val), true);
 }
