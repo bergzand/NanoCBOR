@@ -175,12 +175,11 @@ static inline void _packed_restore(nanocbor_value_t *value, const uint8_t **cur,
 
 /* forward declarations of functions used by packed CBOR handling */
 static int _get_type(nanocbor_value_t *cvalue, uint8_t limit);
-static int _get_and_advance_int64(nanocbor_value_t *cvalue, int64_t *value,
-                                  uint8_t max, uint64_t bound, uint8_t limit);
 static int _enter_container(nanocbor_value_t *it,
                             nanocbor_value_t *container, uint8_t type, uint8_t limit);
 static int _leave_container(nanocbor_value_t *it, nanocbor_value_t *container, uint8_t limit);
 static int _skip_limited(nanocbor_value_t *it, uint8_t limit);
+static int _packed_handle(nanocbor_value_t *cvalue, nanocbor_value_t *target, uint8_t limit);
 
 /**
  * Check whether packed CBOR decoding is enabled for the given @p value.
@@ -194,6 +193,16 @@ static inline bool _packed_enabled(const nanocbor_value_t *value)
     return (value->flags & NANOCBOR_DECODER_FLAG_PACKED_SUPPORT) != 0;
 }
 
+static inline void _packed_set_enabled(nanocbor_value_t *value, bool enabled)
+{
+    if (enabled) {
+        value->flags |= NANOCBOR_DECODER_FLAG_PACKED_SUPPORT;
+    }
+    else {
+        value->flags &= ~NANOCBOR_DECODER_FLAG_PACKED_SUPPORT;
+    }
+}
+
 /**
  * Copy active set of packing tables from @p src to @p dest.
  *
@@ -205,6 +214,52 @@ static inline void _packed_copy_tables(nanocbor_value_t *dest, const nanocbor_va
     memcpy(dest->shared_item_tables, src->shared_item_tables, sizeof(dest->shared_item_tables));
     dest->num_active_tables = src->num_active_tables;
 }
+
+// todo: consider rewind on error (backup curr, remaining, packed tables (max index stored in nanocbor_value_t?), restore on error)
+// todo: maybe rename parameters on _packed_* to outer and inner, which are at the beginning just copies of cvalue & for recursive calls one of them could be NULL to make that fact explicit, on successful _packed_handle cvalue could be updated to outer 
+/**
+ * Macro to avoid code duplication in decoder function implementations.
+ * This is supposed to be used as a first line in all the functions
+ * that should transparently handle packed CBOR data items.
+ *
+ * It works as follows:
+ * 1. if the recursion limit is reached, @ref NANOCBOR_ERR_RECURSION is returned
+ * 2. if @p cvalue points to a supported packed CBOR data item, it is handled
+ *   a. on success, the recursive function call @p func is executed
+ *   b. on failure during packed CBOR handling, the failure code is returned
+ * 3. if no supported packed CBOR data item was found, execution continues within the enclosing function
+ *
+ * Recursion is bounded as long as @p limit is decreased by one in the recursive function call.
+ *
+ * If the packed CBOR handling is aborted due to an error, the state of @p cvalue is undefined.
+ *
+ * @param       cvalue  decoder context
+ * @param       limit   recursion limit
+ * @param       func    recursive function call where @p cvalue should be replaced by `&followed` and @p limit decreased by one
+ */
+// todo: from `cvalue = &followed` on, cvalue actually does not refer to outer cvalue, but it also shouldn't need to
+// todo: update / adapt docs
+#define _PACKED_HANDLE(cvalue, followed, limit)                 \
+    do {                                                        \
+        if (limit == 0) {                                       \
+            return NANOCBOR_ERR_RECURSION;                      \
+        }                                                       \
+        int res = _packed_handle(cvalue, followed, limit-1);    \
+        if (res == NANOCBOR_OK) {                               \
+            /* packed CBOR found and handled */                 \
+            /* update cvalue for remaining function call */     \
+            cvalue = followed;                                  \
+        }                                                       \
+        else if (res != NANOCBOR_NOT_FOUND) {                   \
+            /* error during packed CBOR handling */             \
+            return res;                                         \
+        }                                                       \
+        /* else: no packed CBOR found, simply continue */       \
+    } while (0)
+
+#define _PACKED_HANDLE_OUTER(cvalue, followed, limit) nanocbor_value_t followed; _PACKED_HANDLE(cvalue, &followed, limit)
+
+#define _PACKED_HANDLE_LIMITED(cvalue) uint8_t limit = NANOCBOR_RECURSION_MAX; _PACKED_HANDLE_OUTER(cvalue, followed, limit)
 
 /**
  * @brief Consume the content of a tag 113 packing table definition.
@@ -228,6 +283,7 @@ static inline void _packed_copy_tables(nanocbor_value_t *dest, const nanocbor_va
 static int _packed_consume_table(nanocbor_value_t *cvalue, nanocbor_value_t *target, uint8_t limit)
 {
     nanocbor_value_t arr;
+    // todo: could we instead call _packed_handle here proactively and then use low-level container / somehow get rid of extra arr value
     /* same as nanocbor_enter_array(cvalue, &arr), but passing down limit */
     int ret = _enter_container(cvalue, &arr, NANOCBOR_TYPE_ARR, limit-1);
     if (ret < 0) {
@@ -240,7 +296,13 @@ static int _packed_consume_table(nanocbor_value_t *cvalue, nanocbor_value_t *tar
     }
 
     struct nanocbor_packed_table *t = &target->shared_item_tables[target->num_active_tables];
-    ret = _get_type(&arr, limit-1);
+    // todo: double-check if nested packing handling _get_type really needed -> not for current set of tests at least
+    // needed for inner, itself packed table definition as in 113([[[undefined]], 113([simple(0), simple(0)])])
+    // but in that case, following the reference directly, aka storing the actual table instead of the reference to the table would be better anyhow
+    // could we just use _packed_handle from here recursively?
+    // todo: continue here - add test that should fail as is and not if changed back, then try with _packed_handle
+    ret = __get_type(&arr);
+    // ret = _get_type(&arr, limit-1);
     if (ret != NANOCBOR_TYPE_ARR) {
         return ret == NANOCBOR_ERR_RECURSION ? ret : NANOCBOR_ERR_PACKED_FORMAT;
     }
@@ -301,6 +363,7 @@ static int _packed_follow_reference(const nanocbor_value_t *cvalue, nanocbor_val
         _packed_copy_tables(&table, cvalue);
 
         int res;
+        // todo: could we instead call _packed_handle here proactively and then use low-level container access / somehow get rid of extra table value
         /* same as nanocbor_enter_array(&table, target), but passing down limit */
         res = _enter_container(&table, target, NANOCBOR_TYPE_ARR, limit-1);
         if (res < 0) {
@@ -376,13 +439,37 @@ static int _packed_handle(nanocbor_value_t *cvalue, nanocbor_value_t *target, ui
             ret = _packed_consume_table(cvalue, target, limit);
         }
         else if (tag == NANOCBOR_TAG_PACKED_REF_SHARED) {
-            int64_t n;
+            uint64_t n;
             cvalue->cur += ret;
+
+            // todo: would it be possible to explicitely call _packed_handle from here recursively instead of passing down limit like this? > probably easier here than for _enter_container and friends
+            // ret = _packed_handle(cvalue, target, limit-1);
+            // if (ret == NANOCBOR_OK) {
+            //     cvalue = target;
+            // }
+            // else if (ret != NANOCBOR_NOT_FOUND && ret < 0) {
+            //     return ret == NANOCBOR_ERR_RECURSION ? ret : NANOCBOR_ERR_PACKED_FORMAT;
+            // }
+            // todo: maybe make use of _PACKED_HANDLE instead -> split into one macro that defines followed and one that does not??
+            // todo: this hides recursive call -> instead have Macro that only handles return value?
+            _PACKED_HANDLE(cvalue, target, limit);
+
+            int ctype = __get_type(cvalue);
+            if (ctype != NANOCBOR_TYPE_UINT && ctype != NANOCBOR_TYPE_NINT) {
+                // todo: needs to be changed to allow for argument referencing
+                return NANOCBOR_ERR_PACKED_FORMAT;
+            }
+            ret = _get_uint64(cvalue, &n, NANOCBOR_SIZE_LONG, ctype);
+            if (ret < 0) return NANOCBOR_ERR_PACKED_FORMAT; // todo: or pass on ret?
+            _advance(cvalue, ret);
+            // todo: check for overflow
+            uint64_t idx = 16 + (ctype == NANOCBOR_TYPE_UINT ? 2*n : 2*n+1); // n' = -n-1 -> -2*n'-1 = -2*(-n-1)-1 = 2n+2-1 = 2n+1
+
             /* same as nanocbor_get_int64(cvalue, &n), but passing down limit */
-            ret = _get_and_advance_int64(cvalue, &n, NANOCBOR_SIZE_LONG, INT64_MAX, limit);
-            if (ret < 0)
-                return ret == NANOCBOR_ERR_RECURSION ? ret : NANOCBOR_ERR_PACKED_FORMAT;
-            uint64_t idx = 16 + (n >= 0 ? 2*n : -2*n-1);
+            // ret = _get_and_advance_int64(cvalue, &n, NANOCBOR_SIZE_LONG, INT64_MAX, limit);
+            // if (ret < 0)
+            //     return ret == NANOCBOR_ERR_RECURSION ? ret : NANOCBOR_ERR_PACKED_FORMAT;
+            // uint64_t idx = 16 + (n >= 0 ? 2*n : -2*n-1);
             ret = _packed_follow_reference(cvalue, target, idx, limit);
         }
         else {
@@ -408,56 +495,17 @@ static int _packed_handle(nanocbor_value_t *cvalue, nanocbor_value_t *target, ui
     return ret;
 }
 
-// todo: consider rewind on error (backup curr, remaining, packed tables (max index stored in nanocbor_value_t?), restore on error)
-/**
- * Macro to avoid code duplication in decoder function implementations.
- * This is supposed to be used as a first line in all the functions
- * that should transparently handle packed CBOR data items.
- *
- * It works as follows:
- * 1. if the recursion limit is reached, @ref NANOCBOR_ERR_RECURSION is returned
- * 2. if @p cvalue points to a supported packed CBOR data item, it is handled
- *   a. on success, the recursive function call @p func is executed
- *   b. on failure during packed CBOR handling, the failure code is returned
- * 3. if no supported packed CBOR data item was found, execution continues within the enclosing function
- *
- * Recursion is bounded as long as @p limit is decreased by one in the recursive function call.
- *
- * If the packed CBOR handling is aborted due to an error, the state of @p cvalue is undefined.
- *
- * @param       cvalue  decoder context
- * @param       limit   recursion limit
- * @param       func    recursive function call where @p cvalue should be replaced by `&followed` and @p limit decreased by one
- */
-// todo: from `cvalue = &followed` on, cvalue actually does not refer to outer cvalue, but it also shouldn't need to
-#define _PACKED_HANDLE(cvalue, limit) nanocbor_value_t followed; do {        \
-    if (limit == 0) {                                   \
-        return NANOCBOR_ERR_RECURSION;                  \
-    }                                                   \
-    int res = _packed_handle(cvalue, &followed, limit-1); \
-    if (res == NANOCBOR_OK) {                           \
-        /* packed CBOR found, update cvalue for remaining function call */  \
-        cvalue = &followed;                             \
-    }                                                   \
-    else if (res != NANOCBOR_NOT_FOUND) {               \
-        /* error during packed CBOR handling */         \
-        return res;                                     \
-    }                                                   \
-    /* else: no packed CBOR found, continue */          \
-} while (0)
-
-#define _PACKED_HANDLE_UNLIMITED(cvalue) uint8_t limit = NANOCBOR_RECURSION_MAX; _PACKED_HANDLE(cvalue, limit)
-
 #else /* !NANOCBOR_DECODE_PACKED_ENABLED */
 #define _packed_enabled(v) (false)
 #define _packed_copy_tables(d, s)
 #define _PACKED_HANDLE(cvalue, limit, func)
+// todo: needs to be adapted to contain all macros that are used later
 #endif
 
 #if NANOCBOR_DECODE_PACKED_ENABLED
 static int _get_type(nanocbor_value_t *cvalue, uint8_t limit)
 {
-    _PACKED_HANDLE(cvalue, limit);
+    _PACKED_HANDLE_OUTER(cvalue, followed, limit);
 
     return __get_type(cvalue);
 }
@@ -477,7 +525,7 @@ int nanocbor_get_type(const nanocbor_value_t *value)
 static int _get_and_advance_uint8(nanocbor_value_t *cvalue, uint8_t *value,
                                   int type)
 {
-    _PACKED_HANDLE_UNLIMITED(cvalue);
+    _PACKED_HANDLE_LIMITED(cvalue);
 
     uint64_t tmp = 0;
     int res = _get_uint64(cvalue, &tmp, NANOCBOR_SIZE_BYTE, type);
@@ -494,7 +542,7 @@ int nanocbor_get_uint8(nanocbor_value_t *cvalue, uint8_t *value)
 static int _get_and_advance_uint64(nanocbor_value_t *cvalue, uint64_t *value,
                                   uint8_t max)
 {
-    _PACKED_HANDLE_UNLIMITED(cvalue);
+    _PACKED_HANDLE_LIMITED(cvalue);
 
     int res = _get_uint64(cvalue, value, max, NANOCBOR_TYPE_UINT);
     return _advance_if(cvalue, res);
@@ -534,9 +582,9 @@ int nanocbor_get_uint64(nanocbor_value_t *cvalue, uint64_t *value)
 }
 
 static int _get_and_advance_int64(nanocbor_value_t *cvalue, int64_t *value,
-                                  uint8_t max, uint64_t bound, uint8_t limit)
+                                  uint8_t max, uint64_t bound)
 {
-    _PACKED_HANDLE(cvalue, limit);
+    _PACKED_HANDLE_LIMITED(cvalue);
 
     int type = __get_type(cvalue);
     if (type < 0) {
@@ -563,7 +611,7 @@ int nanocbor_get_int8(nanocbor_value_t *cvalue, int8_t *value)
 {
     int64_t tmp = 0;
     int res
-        = _get_and_advance_int64(cvalue, &tmp, NANOCBOR_SIZE_BYTE, INT8_MAX, NANOCBOR_RECURSION_MAX);
+        = _get_and_advance_int64(cvalue, &tmp, NANOCBOR_SIZE_BYTE, INT8_MAX);
 
     *value = (int8_t)tmp;
 
@@ -574,7 +622,7 @@ int nanocbor_get_int16(nanocbor_value_t *cvalue, int16_t *value)
 {
     int64_t tmp = 0;
     int res
-        = _get_and_advance_int64(cvalue, &tmp, NANOCBOR_SIZE_SHORT, INT16_MAX, NANOCBOR_RECURSION_MAX);
+        = _get_and_advance_int64(cvalue, &tmp, NANOCBOR_SIZE_SHORT, INT16_MAX);
 
     *value = (int16_t)tmp;
 
@@ -585,7 +633,7 @@ int nanocbor_get_int32(nanocbor_value_t *cvalue, int32_t *value)
 {
     int64_t tmp = 0;
     int res
-        = _get_and_advance_int64(cvalue, &tmp, NANOCBOR_SIZE_WORD, INT32_MAX, NANOCBOR_RECURSION_MAX);
+        = _get_and_advance_int64(cvalue, &tmp, NANOCBOR_SIZE_WORD, INT32_MAX);
 
     *value = (int32_t)tmp;
 
@@ -594,12 +642,12 @@ int nanocbor_get_int32(nanocbor_value_t *cvalue, int32_t *value)
 
 int nanocbor_get_int64(nanocbor_value_t *cvalue, int64_t *value)
 {
-    return _get_and_advance_int64(cvalue, value, NANOCBOR_SIZE_LONG, INT64_MAX, NANOCBOR_RECURSION_MAX);
+    return _get_and_advance_int64(cvalue, value, NANOCBOR_SIZE_LONG, INT64_MAX);
 }
 
 int nanocbor_get_tag(nanocbor_value_t *cvalue, uint32_t *tag)
 {
-    _PACKED_HANDLE_UNLIMITED(cvalue);
+    _PACKED_HANDLE_LIMITED(cvalue);
 
     uint64_t tmp = 0;
     int res = _get_uint64(cvalue, &tmp, NANOCBOR_SIZE_WORD, NANOCBOR_TYPE_TAG);
@@ -640,7 +688,7 @@ int nanocbor_get_decimal_frac(nanocbor_value_t *cvalue, int32_t *e, int32_t *m)
 static int _get_str(nanocbor_value_t *cvalue, const uint8_t **buf, size_t *len,
                     uint8_t type)
 {
-    _PACKED_HANDLE_UNLIMITED(cvalue);
+    _PACKED_HANDLE_LIMITED(cvalue);
 
     uint64_t tmp = 0;
     int res = _get_uint64(cvalue, &tmp, NANOCBOR_SIZE_SIZET, type);
@@ -672,7 +720,7 @@ int nanocbor_get_tstr(nanocbor_value_t *cvalue, const uint8_t **buf,
 
 static int _get_simple_exact(nanocbor_value_t *cvalue, uint8_t val)
 {
-    _PACKED_HANDLE_UNLIMITED(cvalue);
+    _PACKED_HANDLE_LIMITED(cvalue);
 
     return _value_match_exact(cvalue, val);
 }
@@ -683,9 +731,9 @@ int nanocbor_get_null(nanocbor_value_t *cvalue)
                             NANOCBOR_MASK_FLOAT | NANOCBOR_SIMPLE_NULL);
 }
 
-static int _get_bool(nanocbor_value_t *cvalue, bool *value)
+int nanocbor_get_bool(nanocbor_value_t *cvalue, bool *value)
 {
-    _PACKED_HANDLE_UNLIMITED(cvalue);
+    _PACKED_HANDLE_LIMITED(cvalue);
 
     int res = _value_match_exact(cvalue,
                                  NANOCBOR_MASK_FLOAT | NANOCBOR_SIMPLE_FALSE);
@@ -700,11 +748,6 @@ static int _get_bool(nanocbor_value_t *cvalue, bool *value)
     }
 
     return res;
-}
-
-int nanocbor_get_bool(nanocbor_value_t *cvalue, bool *value)
-{
-    return _get_bool(cvalue, value);
 }
 
 int nanocbor_get_undefined(nanocbor_value_t *cvalue)
@@ -812,7 +855,7 @@ static int _decode_double(nanocbor_value_t *cvalue, double *value)
 
 int nanocbor_get_float(nanocbor_value_t *cvalue, float *value)
 {
-    _PACKED_HANDLE_UNLIMITED(cvalue);
+    _PACKED_HANDLE_LIMITED(cvalue);
 
     int res = _decode_half_float(cvalue, value);
     if (res < 0) {
@@ -823,7 +866,7 @@ int nanocbor_get_float(nanocbor_value_t *cvalue, float *value)
 
 int nanocbor_get_double(nanocbor_value_t *cvalue, double *value)
 {
-    _PACKED_HANDLE_UNLIMITED(cvalue);
+    _PACKED_HANDLE_LIMITED(cvalue);
 
     float tmp = 0;
     int res = nanocbor_get_float(cvalue, &tmp);
@@ -838,7 +881,7 @@ static int _enter_container(nanocbor_value_t *it,
                             nanocbor_value_t *container, uint8_t type, uint8_t limit)
 {
     if (_packed_enabled(it)) {
-        _PACKED_HANDLE(it, limit);
+        _PACKED_HANDLE_OUTER(it, followed, limit);
         _packed_copy_tables(container, it);
         /* mark container as being top-level shared item if _enter_container has been called recursively */
         container->flags = NANOCBOR_DECODER_FLAG_PACKED_SUPPORT | (it == &followed ? NANOCBOR_DECODER_FLAG_SHARED : 0);
