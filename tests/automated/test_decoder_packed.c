@@ -14,6 +14,51 @@
 
 #if NANOCBOR_DECODE_PACKED_ENABLED
 
+#undef CU_ASSERT_EQUAL
+#define CU_ASSERT_EQUAL(actual, expected) \
+  { int ret = (actual); CU_assertImplementation((ret == (expected)), __LINE__, ("CU_ASSERT_EQUAL(" #actual "," #expected ")"), __FILE__, "", CU_FALSE); if (ret != (expected)) printf("was %d\n", ret); }
+
+static void test_packed_follow_reference_simple(void)
+{
+    nanocbor_value_t val;
+    bool b;
+
+    // simple(0), simple(1)
+    static const uint8_t follow_reference_simple[] = { 0xE0, 0xE1 };
+    // [true,false]
+    static const uint8_t table[] = { 0x82, 0xF5, 0xF4 };
+    nanocbor_decoder_init_packed_table(&val, follow_reference_simple, sizeof(follow_reference_simple), table, sizeof(table));
+    CU_ASSERT_EQUAL(nanocbor_get_type(&val), NANOCBOR_TYPE_FLOAT);
+    CU_ASSERT_EQUAL(nanocbor_get_bool(&val, &b), NANOCBOR_OK);
+    CU_ASSERT_EQUAL(b, true);
+    CU_ASSERT_EQUAL(nanocbor_get_type(&val), NANOCBOR_TYPE_FLOAT);
+    CU_ASSERT_EQUAL(nanocbor_get_bool(&val, &b), NANOCBOR_OK);
+    CU_ASSERT_EQUAL(b, false);
+    CU_ASSERT_EQUAL(nanocbor_at_end(&val), true);
+}
+
+static void test_packed_follow_reference_tag(void)
+{
+    nanocbor_value_t val;
+    bool b;
+
+    // 6(0), 6(-1), 6(simple(0))
+    static const uint8_t follow_reference_tag[] = { 0xC6, 0x00, 0xC6, 0x20, 0xC6, 0xE0 };
+    // [0,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,true,false]
+    static const uint8_t table[] = { 0x92, 0x00, 0xF6, 0xF6, 0xF6, 0xF6, 0xF6, 0xF6, 0xF6, 0xF6, 0xF6, 0xF6, 0xF6, 0xF6, 0xF6, 0xF6, 0xF6, 0xF5, 0xF4 };
+    nanocbor_decoder_init_packed_table(&val, follow_reference_tag, sizeof(follow_reference_tag), table, sizeof(table));
+    CU_ASSERT_EQUAL(nanocbor_get_type(&val), NANOCBOR_TYPE_FLOAT);
+    CU_ASSERT_EQUAL(nanocbor_get_bool(&val, &b), NANOCBOR_OK);
+    CU_ASSERT_EQUAL(b, true);
+    CU_ASSERT_EQUAL(nanocbor_get_type(&val), NANOCBOR_TYPE_FLOAT);
+    CU_ASSERT_EQUAL(nanocbor_get_bool(&val, &b), NANOCBOR_OK);
+    CU_ASSERT_EQUAL(b, false);
+    CU_ASSERT_EQUAL(nanocbor_get_type(&val), NANOCBOR_TYPE_FLOAT);
+    CU_ASSERT_EQUAL(nanocbor_get_bool(&val, &b), NANOCBOR_OK);
+    CU_ASSERT_EQUAL(b, true);
+    CU_ASSERT_EQUAL(nanocbor_at_end(&val), true);
+}
+
 static void test_packed_enable(void)
 {
     nanocbor_value_t val, val2, val3;
@@ -436,6 +481,26 @@ static void test_packed_nested_table_within_table(void)
     CU_ASSERT_EQUAL(nanocbor_at_end(&val), true);
 }
 
+static void test_packed_with_packed_table_definition(void)
+{
+    nanocbor_value_t val;
+
+    // 113([[[null]], 113([simple(0), simple(0)])])
+    // static const uint8_t nested_table_within_table[] = { 0xD8, 0x71, 0x82, 0x81, 0x81, 0xF6, 0xD8, 0x71, 0x82, 0xE0, 0xE0 };
+    // nanocbor_decoder_init_packed(&val, nested_table_within_table, sizeof(nested_table_within_table));
+    // CU_ASSERT_EQUAL(nanocbor_get_type(&val), NANOCBOR_TYPE_FLOAT);
+    // CU_ASSERT_EQUAL(nanocbor_get_null(&val), NANOCBOR_OK);
+    // CU_ASSERT_EQUAL(nanocbor_at_end(&val), true);
+
+
+    static const uint8_t buf[] = { 0xD8, 0x71, 0x82, 0xE0, 0xE0 };
+    static const uint8_t table[] = { 0x81, 0x81 };
+    nanocbor_decoder_init_packed_table(&val, buf, sizeof(buf), table, sizeof(table));
+    CU_ASSERT_EQUAL(nanocbor_get_type(&val), NANOCBOR_TYPE_FLOAT);
+    CU_ASSERT_EQUAL(nanocbor_get_null(&val), NANOCBOR_OK);
+    CU_ASSERT_EQUAL(nanocbor_at_end(&val), true);
+}
+
 static void test_packed_table_within_array(void)
 {
     nanocbor_value_t val, val2;
@@ -578,6 +643,14 @@ static void test_packed_max_nesting_exceeded(void)
 
 const test_t tests_decoder_packed[] = {
     {
+        .f = test_packed_follow_reference_simple,
+        .n = "CBOR packed follow reference via simple value test",
+    },
+    {
+        .f = test_packed_follow_reference_tag,
+        .n = "CBOR packed follow reference via tag 6 test",
+    },
+    {
         .f = test_packed_enable,
         .n = "CBOR packed enable support test",
     },
@@ -676,6 +749,10 @@ const test_t tests_decoder_packed[] = {
     {
         .f = test_packed_nested_table_within_table,
         .n = "CBOR packed nested shared item table definition within table definition test",
+    },
+    {
+        .f = test_packed_with_packed_table_definition,
+        .n = "CBOR packed with itself packed table definition test",
     },
     {
         .f = test_packed_table_within_array,
