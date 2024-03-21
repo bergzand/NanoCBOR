@@ -271,6 +271,11 @@ int nanocbor_get_tag(nanocbor_value_t *cvalue, uint32_t *tag)
     return res;
 }
 
+int nanocbor_get_tag64(nanocbor_value_t *cvalue, uint64_t *tag)
+{
+    return _get_and_advance_uint64(cvalue, tag, NANOCBOR_TYPE_TAG);
+}
+
 int nanocbor_get_decimal_frac(nanocbor_value_t *cvalue, int32_t *e, int32_t *m)
 {
     int res = NANOCBOR_NOT_FOUND;

@@ -499,6 +499,18 @@ void nanocbor_leave_container(nanocbor_value_t *it,
 int nanocbor_get_tag(nanocbor_value_t *cvalue, uint32_t *tag);
 
 /**
+ * @brief Retrieve a tag as positive uint64_t from the stream
+ *
+ * The resulting @p value is undefined if the result is an error condition
+ *
+ * @param[in]   cvalue  CBOR value to decode from
+ * @param[out]  tag     returned tag as positive integer
+ *
+ * @return              NANOCBOR_OK on success
+ */
+int nanocbor_get_tag64(nanocbor_value_t *cvalue, uint64_t *tag);
+
+/**
  * @brief Retrieve a null value from the stream
  *
  * This function checks if the next CBOR value is a NULL value and advances to
