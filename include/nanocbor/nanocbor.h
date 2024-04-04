@@ -173,6 +173,7 @@ typedef struct nanocbor_value {
     uint8_t flags;      /**< Flags for decoding hints                   */
 #if NANOCBOR_DECODE_PACKED_ENABLED
     uint8_t num_active_tables;  /**< Number of tables in active table set */
+    /** array of packing table definitions, filled from 0 to NANOCBOR_DECODE_PACKED_NESTED_TABLES_MAX */
     struct nanocbor_packed_table {
         const uint8_t *start;   /**< Start of table definition, NULL if non-existent */
         size_t len;             /**< Length in bytes of table definition */
@@ -323,8 +324,11 @@ void nanocbor_decoder_init_packed(nanocbor_value_t *value, const uint8_t *buf,
  * @param[in]   len         Length in bytes of the buffer
  * @param[in]   table_buf   Buffer containing initial shared item table, or NULL if none
  * @param[in]   table_len   Length in bytes of the table buffer
+ *
+ * @return              NANOCBOR_OK on success
+ * @return              negative on error
  */
-void nanocbor_decoder_init_packed_table(nanocbor_value_t *value, const uint8_t *buf,
+int nanocbor_decoder_init_packed_table(nanocbor_value_t *value, const uint8_t *buf,
                            size_t len, const uint8_t *table_buf, size_t table_len);
 
 /**
@@ -572,7 +576,6 @@ int nanocbor_enter_map(const nanocbor_value_t *it, nanocbor_value_t *map);
  */
 int nanocbor_leave_container(nanocbor_value_t *it,
                               nanocbor_value_t *container);
-// todo: return NANOCBOR_OK, if container was actually container?
 
 /**
  * @brief Retrieve a tag as positive uint32_t from the stream
