@@ -91,17 +91,30 @@ while (!nanocbor_at_end(&map)) {
 }
 ```
 
+## Packed CBOR support
 
-### Dependencies:
+NanoCBOR comes with optional support for transparent shared item decoding according to [packed CBOR].
+This functionality needs to be explicitly enabled at compile-time by setting `NANOCBOR_DECODE_PACKED_ENABLED` to `1`,
+and at runtime by using `nanocbor_decoder_init_packed()` or `nanocbor_decoder_init_packed_table()` instead of `nanocbor_decoder_init()` for a certain `nanocbor_value_t` decoding context.
+
+In enabled, the normal NanoCBOR decoding functions support, transparently to the calling function,
+- application-provided shared item table setup
+- tag 113 for shared item table setup
+- simple values 0-15 and tag 6 for shared item references
+
+The maximum nesting level of shared item tables can be set at runtime with `NANOCBOR_DECODE_PACKED_NESTED_TABLES_MAX` and defaults to `3`.
+
+## Dependencies
 
 Only dependency are two functions to provide endian conversion.
 These are not provided by the library and have to be configured in the header file.
 On a bare metal ARM platform, `__builtin_bswap64` and `__builtin_bswap32` can be used for this conversion.
 
-### Contributing
+## Contributing
 
 Open an issue, PR, the usual.
 
 [Meson]: https://mesonbuild.com/
 [Ninja]: https://ninja-build.org/
 [CUnit]: https://cunit.sourceforge.net/
+[packed CBOR]: https://datatracker.ietf.org/doc/draft-ietf-cbor-packed/
