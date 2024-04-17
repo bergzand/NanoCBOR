@@ -30,6 +30,25 @@ extern "C" {
 #endif
 
 /**
+ * @brief Enable decoding support for packed CBOR item sharing
+ * transparent to the application.
+ *
+ * @note Packed CBOR argument sharing is not supported by NanoCBOR.
+ */
+#ifndef NANOCBOR_DECODE_PACKED_ENABLED
+#define NANOCBOR_DECODE_PACKED_ENABLED 1
+#endif
+
+/**
+ * @brief Maximum nesting level of shared item packing tables.
+ *
+ * @note only applies when @ref NANOCBOR_DECODE_PACKED_ENABLED is set to 1
+ */
+#ifndef NANOCBOR_DECODE_PACKED_NESTED_TABLES_MAX
+#define NANOCBOR_DECODE_PACKED_NESTED_TABLES_MAX 3
+#endif
+
+/**
  * @brief library providing htonll, be64toh or equivalent. Must also provide
  * the reverse operation (ntohll, htobe64 or equivalent)
  */
