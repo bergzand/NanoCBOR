@@ -60,6 +60,59 @@ static void test_packed_follow_reference_by_tag(void)
     CU_ASSERT_EQUAL(nanocbor_at_end(&val), true);
 }
 
+static void test_packed_invalid_type(void)
+{
+    nanocbor_value_t val;
+
+    // simple(0)
+    static const uint8_t cbor[] = { 0xE0 };
+    // [undefined]
+    static const uint8_t table[] = { 0x81, 0xF7 };
+
+    nanocbor_decoder_init_packed_table(&val, cbor, sizeof(cbor), table, sizeof(table));
+
+    CU_ASSERT_EQUAL(nanocbor_get_null(&val), NANOCBOR_ERR_INVALID_TYPE);
+    CU_ASSERT(val.cur == cbor);
+
+    bool b;
+    CU_ASSERT_EQUAL(nanocbor_get_bool(&val, &b), NANOCBOR_ERR_INVALID_TYPE);
+    CU_ASSERT(val.cur == cbor);
+
+    uint8_t uint8;
+    CU_ASSERT_EQUAL(nanocbor_get_uint8(&val, &uint8), NANOCBOR_ERR_INVALID_TYPE);
+    CU_ASSERT(val.cur == cbor);
+
+    uint64_t uint64;
+    CU_ASSERT_EQUAL(nanocbor_get_uint64(&val, &uint64), NANOCBOR_ERR_INVALID_TYPE);
+    CU_ASSERT(val.cur == cbor);
+
+    int8_t nint;
+    CU_ASSERT_EQUAL(nanocbor_get_int8(&val, &nint), NANOCBOR_ERR_INVALID_TYPE);
+    CU_ASSERT(val.cur == cbor);
+
+    float_t flt;
+    CU_ASSERT_EQUAL(nanocbor_get_float(&val, &flt), NANOCBOR_ERR_INVALID_TYPE);
+    CU_ASSERT(val.cur == cbor);
+
+    double_t dbl;
+    CU_ASSERT_EQUAL(nanocbor_get_double(&val, &dbl), NANOCBOR_ERR_INVALID_TYPE);
+    CU_ASSERT(val.cur == cbor);
+
+    const uint8_t *tstr;
+    size_t tstr_len;
+    CU_ASSERT_EQUAL(nanocbor_get_tstr(&val, &tstr, &tstr_len), NANOCBOR_ERR_INVALID_TYPE);
+    CU_ASSERT(val.cur == cbor);
+
+    const uint8_t *bstr;
+    size_t bstr_len;
+    CU_ASSERT_EQUAL(nanocbor_get_bstr(&val, &bstr, &bstr_len), NANOCBOR_ERR_INVALID_TYPE);
+    CU_ASSERT(val.cur == cbor);
+
+    uint32_t tag;
+    CU_ASSERT_EQUAL(nanocbor_get_tag(&val, &tag), NANOCBOR_ERR_INVALID_TYPE);
+    CU_ASSERT(val.cur == cbor);
+}
+
 static void test_packed_follow_reference_getters(void)
 {
     nanocbor_value_t val;
@@ -485,6 +538,10 @@ const test_t tests_decoder_packed[] = {
     {
         .f = test_packed_follow_reference_getters,
         .n = "CBOR packed follow reference for nanocbor_get_* functions test",
+    },
+    {
+        .f = test_packed_invalid_type,
+        .n = "CBOR packed do not move on invalid type test",
     },
     {
         .f = test_packed_follow_reference_containers,

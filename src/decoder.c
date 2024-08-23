@@ -193,8 +193,8 @@ static inline int _enter_array_unpacked(const nanocbor_value_t *it, nanocbor_val
 
 /**
  * Internal macro to avoid code duplication in decoder function implementations.
- * Instead of this internal macro, one of @ref _PACKED_HANDLE or @ref _PACKED_HANDLE_CONST
- * should be used instead.
+ * Instead of this internal macro, please use @ref _PACKED_HANDLE_BEGIN combined with @ref _PACKED_HANDLE_END,
+ * @ref _PACKED_HANDLE_CONST or @ref _PACKED_HANDLE_CONTAINER.
  *
  * It works as follows:
  * 1. a copy of @p cvalue is created on the stack
@@ -203,58 +203,99 @@ static inline int _enter_array_unpacked(const nanocbor_value_t *it, nanocbor_val
  *   b. on packed CBOR handling failure, the failure code is returned and @p cvalue remains unchanged
  * 3. if @p cvalue does not point to a supported packed CBOR data item,
  *    execution continues without a change to @p cvalue within the enclosing function
- * 
- * @warning This is an unhygienic macro which declares a variable called `followed` of type @ref nanocbor_value_t.
  *
- * @param       cvalue  decoder context of type @ref nanocbor_value_t*
- * @param       _do     statement(s) to be executed after a packed CBOR item has been successfully handled
+ * @warning This is an unhygienic macro which declares a variable called `__inner` of type @ref nanocbor_value_t.
+ *
+ * @param[inout]    cvalue  decoder context of type @ref nanocbor_value_t*
+ * @param           _do     statement(s) to be executed if a packed CBOR item has been found and successfully handled
  */
-#define __PACKED_HANDLE(cvalue, _do)                            \
-    nanocbor_value_t followed;                                  \
-    do {                                                        \
-        followed = *cvalue;                                     \
-        int res = _packed_handle(&followed, NANOCBOR_RECURSION_MAX-1); \
-        if (res == NANOCBOR_OK) {                               \
-            /* packed CBOR found and handled */                 \
-            _do;                                                \
-            /* update cvalue for remaining function call */     \
-            cvalue = &followed;                                 \
-        }                                                       \
-        else if (res != NANOCBOR_NOT_FOUND) {                   \
-            /* error during packed CBOR handling */             \
-            return res;                                         \
-        }                                                       \
-        /* else: no packed CBOR found, simply continue */       \
+#define __PACKED_HANDLE(cvalue, _do)                                    \
+    nanocbor_value_t __inner;                                           \
+    do {                                                                \
+        __inner = *cvalue;                                              \
+        int res = _packed_handle(&__inner, NANOCBOR_RECURSION_MAX-1);   \
+        if (res == NANOCBOR_OK) {                                       \
+            /* packed CBOR found and handled */                         \
+            _do;                                                        \
+            /* update cvalue for remaining function call */             \
+            cvalue = &__inner;                                          \
+        }                                                               \
+        else if (res != NANOCBOR_NOT_FOUND) {                           \
+            /* error during packed CBOR handling */                     \
+            return res;                                                 \
+        }                                                               \
+        /* else: no packed CBOR found, simply continue */               \
     } while (0)
 
-
-#define _PACKED_HANDLE_SKIP                                     \
-    int ret = _skip_limited(cvalue, NANOCBOR_RECURSION_MAX-1);  \
-    if (ret != NANOCBOR_OK) return ret;
-
 /**
  * Macro to avoid code duplication in decoder function implementations.
  * This is supposed to be used as a first line in all the functions
  * that should transparently handle packed CBOR data items.
- * 
+ *
+ * A matching invocation of @ref __PACKED_HANDLE_END must be used as a last line
+ * in all functions using this macro.
+ *
  * See @ref __PACKED_HANDLE for a more detailed description of its internals.
+ * For containers, please use @ref _PACKED_HANDLE_CONTAINER instead.
  * If @p cvalue is const, please use @ref _PACKED_HANDLE_CONST instead.
  *
- * @param       cvalue  non-const decoder context of type @ref nanocbor_value_t*
+ * @warning This is an unhygienic macro which declares two variables called `__inner` and `__outer`.
+ *
+ * @param[inout]    cvalue  non-const decoder context of type @ref nanocbor_value_t*
  */
-#define _PACKED_HANDLE(cvalue) __PACKED_HANDLE(cvalue, _PACKED_HANDLE_SKIP)
+#define _PACKED_HANDLE_BEGIN(cvalue)                                    \
+    nanocbor_value_t *__outer = NULL;                                   \
+    __PACKED_HANDLE(cvalue, __outer = cvalue)
+
+/**
+ * Macro to avoid code duplication in decoder function implementations.
+ * This is supposed to be used as a last line in all the functions
+ * that should transparently handle packed CBOR data items.
+ *
+ * A matching invocation of @ref __PACKED_HANDLE_BEGIN must be used as a first line
+ * in all functions using this macro.
+ *
+ * In case @p res is non-negative (not indicating an error) and a packed item has been
+ * handled in the matching @ref __PACKED_HANDLE_BEGIN macro, cvalue as given to that
+ * macro is forwarded by one CBOR item.
+ *
+ * @param[inout]    res  return value of the enclosing function
+ */
+#define _PACKED_HANDLE_END(res)                                         \
+    if (__outer != NULL && res >= NANOCBOR_OK) {                        \
+        int __res = _skip_limited(__outer, NANOCBOR_RECURSION_MAX-1);   \
+        if (__res != NANOCBOR_OK) res = __res;                          \
+    }
+
 
 /**
  * Macro to avoid code duplication in decoder function implementations.
  * This is supposed to be used as a first line in all the functions
  * that should transparently handle packed CBOR data items.
- * 
+ *
  * See @ref __PACKED_HANDLE for a more detailed description of its internals.
  * If @p cvalue should be updated from within the enclosed function, please use @ref _PACKED_HANDLE instead.
  *
- * @param       cvalue  const decoder context of type @ref nanocbor_value_t*
+ * @warning This is an unhygienic macro which declares a variable called `__inner` of type @ref nanocbor_value_t.
+ *
+ * @param[inout]    cvalue  decoder context of type const @ref nanocbor_value_t*
  */
 #define _PACKED_HANDLE_CONST(cvalue) __PACKED_HANDLE(cvalue, )
+
+/**
+ * Macro to avoid code duplication in decoder function implementations.
+ * This is supposed to be used as a first line in all the functions
+ * that should transparently handle packed CBOR data items.
+ *
+ * See @ref __PACKED_HANDLE for a more detailed description of its internals.
+ * If @p cvalue should be updated from within the enclosed function, please use @ref _PACKED_HANDLE instead.
+ *
+ * @warning This is an unhygienic macro which declares a variable called `__inner` of type @ref nanocbor_value_t.
+ *
+ * @param[inout]    cvalue      decoder context of type const @ref nanocbor_value_t*
+ * @param[out]      was_packed  boolean set to true iff a packed item has been successfully handled
+ */
+#define _PACKED_HANDLE_CONTAINER(cvalue, was_packed) __PACKED_HANDLE(cvalue, was_packed = true)
 
 /**
  * @brief Add array to current set of active tables
@@ -529,7 +570,7 @@ static int _packed_handle(nanocbor_value_t *cvalue, uint8_t limit)
             return NANOCBOR_NOT_FOUND;
         }
     }
-    
+
     if (ret == NANOCBOR_OK) {
         /* recursively unpack on success, decrement limit to bound recursion and prevent infinite loops */
         ret = _packed_handle(cvalue, limit-1);
@@ -539,8 +580,10 @@ static int _packed_handle(nanocbor_value_t *cvalue, uint8_t limit)
 }
 
 #else /* !NANOCBOR_DECODE_PACKED_ENABLED */
-#define _PACKED_HANDLE(cvalue)
+#define _PACKED_HANDLE_BEGIN(cvalue)
+#define _PACKED_HANDLE_END(res)
 #define _PACKED_HANDLE_CONST(cvalue)
+#define _PACKED_HANDLE_CONTAINER(cvalue, was_packed)
 #endif
 
 int nanocbor_get_type(const nanocbor_value_t *value)
@@ -552,13 +595,16 @@ int nanocbor_get_type(const nanocbor_value_t *value)
 static int _get_and_advance_uint8(nanocbor_value_t *cvalue, uint8_t *value,
                                   int type)
 {
-    _PACKED_HANDLE(cvalue);
+    _PACKED_HANDLE_BEGIN(cvalue);
 
     uint64_t tmp = 0;
     int res = _get_uint64(cvalue, &tmp, NANOCBOR_SIZE_BYTE, type);
     *value = (uint8_t)tmp;
 
-    return _advance_if(cvalue, res);
+    res = _advance_if(cvalue, res);
+
+    _PACKED_HANDLE_END(res);
+    return res;
 }
 
 int nanocbor_get_uint8(nanocbor_value_t *cvalue, uint8_t *value)
@@ -569,10 +615,13 @@ int nanocbor_get_uint8(nanocbor_value_t *cvalue, uint8_t *value)
 static int _get_and_advance_uint64(nanocbor_value_t *cvalue, uint64_t *value,
                                   uint8_t max)
 {
-    _PACKED_HANDLE(cvalue);
+    _PACKED_HANDLE_BEGIN(cvalue);
 
     int res = _get_uint64(cvalue, value, max, NANOCBOR_TYPE_UINT);
-    return _advance_if(cvalue, res);
+    res = _advance_if(cvalue, res);
+
+    _PACKED_HANDLE_END(res);
+    return res;
 }
 
 int nanocbor_get_uint16(nanocbor_value_t *cvalue, uint16_t *value)
@@ -611,7 +660,7 @@ int nanocbor_get_uint64(nanocbor_value_t *cvalue, uint64_t *value)
 static int _get_and_advance_int64(nanocbor_value_t *cvalue, int64_t *value,
                                   uint8_t max, uint64_t bound)
 {
-    _PACKED_HANDLE(cvalue);
+    _PACKED_HANDLE_BEGIN(cvalue);
 
     int type = __get_type(cvalue);
     if (type < 0) {
@@ -631,7 +680,10 @@ static int _get_and_advance_int64(nanocbor_value_t *cvalue, int64_t *value,
             *value = (int64_t)intermediate;
         }
     }
-    return _advance_if(cvalue, res);
+    res = _advance_if(cvalue, res);
+
+    _PACKED_HANDLE_END(res);
+    return res;
 }
 
 int nanocbor_get_int8(nanocbor_value_t *cvalue, int8_t *value)
@@ -674,7 +726,7 @@ int nanocbor_get_int64(nanocbor_value_t *cvalue, int64_t *value)
 
 int nanocbor_get_tag(nanocbor_value_t *cvalue, uint32_t *tag)
 {
-    _PACKED_HANDLE(cvalue);
+    _PACKED_HANDLE_BEGIN(cvalue);
 
     uint64_t tmp = 0;
     int res = _get_uint64(cvalue, &tmp, NANOCBOR_SIZE_WORD, NANOCBOR_TYPE_TAG);
@@ -685,6 +737,7 @@ int nanocbor_get_tag(nanocbor_value_t *cvalue, uint32_t *tag)
     }
     *tag = (uint32_t)tmp;
 
+    _PACKED_HANDLE_END(res);
     return res;
 }
 
@@ -714,7 +767,7 @@ int nanocbor_get_decimal_frac(nanocbor_value_t *cvalue, int32_t *e, int32_t *m)
 static int _get_str(nanocbor_value_t *cvalue, const uint8_t **buf, size_t *len,
                     uint8_t type)
 {
-    _PACKED_HANDLE(cvalue);
+    _PACKED_HANDLE_BEGIN(cvalue);
 
     uint64_t tmp = 0;
     int res = _get_uint64(cvalue, &tmp, NANOCBOR_SIZE_SIZET, type);
@@ -729,6 +782,8 @@ static int _get_str(nanocbor_value_t *cvalue, const uint8_t **buf, size_t *len,
         _advance(cvalue, (unsigned int)((size_t)res + *len));
         res = NANOCBOR_OK;
     }
+
+    _PACKED_HANDLE_END(res);
     return res;
 }
 
@@ -746,9 +801,12 @@ int nanocbor_get_tstr(nanocbor_value_t *cvalue, const uint8_t **buf,
 
 static int _get_simple_exact(nanocbor_value_t *cvalue, uint8_t val)
 {
-    _PACKED_HANDLE(cvalue);
+    _PACKED_HANDLE_BEGIN(cvalue);
 
-    return _value_match_exact(cvalue, val);
+    int res = _value_match_exact(cvalue, val);
+
+    _PACKED_HANDLE_END(res);
+    return res;
 }
 
 int nanocbor_get_null(nanocbor_value_t *cvalue)
@@ -759,7 +817,7 @@ int nanocbor_get_null(nanocbor_value_t *cvalue)
 
 int nanocbor_get_bool(nanocbor_value_t *cvalue, bool *value)
 {
-    _PACKED_HANDLE(cvalue);
+    _PACKED_HANDLE_BEGIN(cvalue);
 
     int res = _value_match_exact(cvalue,
                                  NANOCBOR_MASK_FLOAT | NANOCBOR_SIMPLE_FALSE);
@@ -773,6 +831,7 @@ int nanocbor_get_bool(nanocbor_value_t *cvalue, bool *value)
         }
     }
 
+    _PACKED_HANDLE_END(res);
     return res;
 }
 
@@ -881,18 +940,20 @@ static int _decode_double(nanocbor_value_t *cvalue, double *value)
 
 int nanocbor_get_float(nanocbor_value_t *cvalue, float *value)
 {
-    _PACKED_HANDLE(cvalue);
+    _PACKED_HANDLE_BEGIN(cvalue);
 
     int res = _decode_half_float(cvalue, value);
     if (res < 0) {
         res = _decode_float(cvalue, value);
     }
+
+    _PACKED_HANDLE_END(res);
     return res;
 }
 
 int nanocbor_get_double(nanocbor_value_t *cvalue, double *value)
 {
-    _PACKED_HANDLE(cvalue);
+    _PACKED_HANDLE_BEGIN(cvalue);
 
     float tmp = 0;
     int res = nanocbor_get_float(cvalue, &tmp);
@@ -900,7 +961,10 @@ int nanocbor_get_double(nanocbor_value_t *cvalue, double *value)
         *value = tmp;
         return res;
     }
-    return _decode_double(cvalue, value);
+    res = _decode_double(cvalue, value);
+
+    _PACKED_HANDLE_END(res);
+    return res;
 }
 
 static int __enter_container(const nanocbor_value_t *it,
@@ -935,10 +999,11 @@ static int _enter_container(const nanocbor_value_t *it,
 {
 #if NANOCBOR_DECODE_PACKED_ENABLED
     if (_packed_enabled(it)) {
-        _PACKED_HANDLE_CONST(it);
+        bool was_packed = false;
+        _PACKED_HANDLE_CONTAINER(it, was_packed);
         _packed_copy_tables(container, it);
         /* mark container as being top-level shared item if _packed_handle was successful */
-        container->flags = NANOCBOR_DECODER_FLAG_PACKED_SUPPORT | (it == &followed ? NANOCBOR_DECODER_FLAG_SHARED : 0);
+        container->flags = NANOCBOR_DECODER_FLAG_PACKED_SUPPORT | (was_packed ? NANOCBOR_DECODER_FLAG_SHARED : 0);
     }
 #else
     if (false) {}
