@@ -239,6 +239,11 @@ int nanocbor_fmt_null(nanocbor_encoder_t *enc)
     return _fmt_single(enc, NANOCBOR_MASK_FLOAT | NANOCBOR_SIMPLE_NULL);
 }
 
+int nanocbor_fmt_undefined(nanocbor_encoder_t *enc)
+{
+    return _fmt_single(enc, NANOCBOR_MASK_FLOAT | NANOCBOR_SIMPLE_UNDEF);
+}
+
 /* Double bit mask related defines */
 #define DOUBLE_EXP_OFFSET (1023U)
 #define DOUBLE_SIZE (64U)

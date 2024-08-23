@@ -937,6 +937,16 @@ int nanocbor_fmt_end_indefinite(nanocbor_encoder_t *enc);
 int nanocbor_fmt_null(nanocbor_encoder_t *enc);
 
 /**
+ * @brief Write an Undefined value into the encoder buffer
+ *
+ * @param[in]   enc     Encoder context
+ *
+ * @return              NANOCBOR_OK
+ * @return              Negative on error
+ */
+int nanocbor_fmt_undefined(nanocbor_encoder_t *enc);
+
+/**
  * @brief Write a float value into the encoder buffer
  *
  * @param[in]   enc     Encoder context
