@@ -290,6 +290,80 @@ static void test_packed_enable(void)
     CU_ASSERT_EQUAL(nanocbor_at_end(&val), true);
 }
 
+static void test_packed_ignore_unpacked(void)
+{
+    nanocbor_value_t val;
+
+    // 1705924361, 42, -42, 3.14159, simple(255), undefined, null, true, "a", h'C0'
+    static const uint8_t cbor[] = {
+        0x1A, 0x65, 0xAE, 0x57, 0x09, 0x18, 0x2A, 0x38, 0x29, 0xFB, 0x40, 0x09, 0x21, 0xF9, 0xF0, 0x1B,
+        0x86, 0x6E, 0xF8, 0xFF, 0xF7, 0xF6, 0xF5, 0x61, 0x61, 0x41, 0xC0 };
+
+    nanocbor_decoder_init_packed(&val, cbor, sizeof(cbor));
+
+    // uint 1705924361
+    uint64_t uint64;
+    CU_ASSERT_EQUAL(nanocbor_get_type(&val), NANOCBOR_TYPE_UINT);
+    CU_ASSERT_EQUAL(nanocbor_get_uint64(&val, &uint64), 5); // len(CBOR(1705924361)) = 5
+    CU_ASSERT_EQUAL(uint64, 1705924361);
+
+    // uint 42
+    uint8_t uint;
+    CU_ASSERT_EQUAL(nanocbor_get_type(&val), NANOCBOR_TYPE_UINT);
+    CU_ASSERT_EQUAL(nanocbor_get_uint8(&val, &uint), 2); // len(CBOR(42)) = 2
+    CU_ASSERT_EQUAL(uint, 42);
+
+    // nint -42
+    int8_t nint;
+    CU_ASSERT_EQUAL(nanocbor_get_type(&val), NANOCBOR_TYPE_NINT);
+    CU_ASSERT_EQUAL(nanocbor_get_int8(&val, &nint), 2);  // len(CBOR(-42)) = 2
+    CU_ASSERT_EQUAL(nint, -42);
+
+    // double 3.14159
+    double_t dbl;
+    CU_ASSERT_EQUAL(nanocbor_get_type(&val), NANOCBOR_TYPE_FLOAT);
+    CU_ASSERT_EQUAL(nanocbor_get_double(&val, &dbl), 9); // len(CBOR double-precision float)
+    CU_ASSERT_DOUBLE_EQUAL(dbl, 3.14159, 0.0000001);
+
+    // simple 255
+    uint8_t simple;
+    CU_ASSERT_EQUAL(nanocbor_get_type(&val), NANOCBOR_TYPE_FLOAT);
+    CU_ASSERT_EQUAL(nanocbor_get_simple(&val, &simple), NANOCBOR_OK);
+    CU_ASSERT_EQUAL(simple, 255);
+
+    // undefined
+    CU_ASSERT_EQUAL(nanocbor_get_type(&val), NANOCBOR_TYPE_FLOAT);
+    CU_ASSERT_EQUAL(nanocbor_get_undefined(&val), NANOCBOR_OK);
+
+    // null
+    CU_ASSERT_EQUAL(nanocbor_get_type(&val), NANOCBOR_TYPE_FLOAT);
+    CU_ASSERT_EQUAL(nanocbor_get_null(&val), NANOCBOR_OK);
+
+    // bool true
+    bool b;
+    CU_ASSERT_EQUAL(nanocbor_get_type(&val), NANOCBOR_TYPE_FLOAT);
+    CU_ASSERT_EQUAL(nanocbor_get_bool(&val, &b), NANOCBOR_OK);
+    CU_ASSERT_EQUAL(b, true);
+
+    // tstr "a"
+    const uint8_t *tstr;
+    size_t tstr_len;
+    CU_ASSERT_EQUAL(nanocbor_get_type(&val), NANOCBOR_TYPE_TSTR);
+    CU_ASSERT_EQUAL(nanocbor_get_tstr(&val, &tstr, &tstr_len), NANOCBOR_OK);
+    CU_ASSERT_EQUAL(tstr_len, 1);
+    CU_ASSERT_NSTRING_EQUAL(tstr, "a", tstr_len);
+
+    // bstr h'C0'
+    const uint8_t *bstr;
+    size_t bstr_len;
+    CU_ASSERT_EQUAL(nanocbor_get_type(&val), NANOCBOR_TYPE_BSTR);
+    CU_ASSERT_EQUAL(nanocbor_get_bstr(&val, &bstr, &bstr_len), NANOCBOR_OK);
+    CU_ASSERT_EQUAL(bstr_len, 1);
+    CU_ASSERT_EQUAL(bstr[0], 0xC0);
+
+    CU_ASSERT_EQUAL(nanocbor_at_end(&val), true);
+}
+
 static void test_packed_table_setup_empty_or_unused(void)
 {
     nanocbor_value_t val;
@@ -554,6 +628,10 @@ const test_t tests_decoder_packed[] = {
     {
         .f = test_packed_enable,
         .n = "CBOR packed enable support test",
+    },
+    {
+        .f = test_packed_ignore_unpacked,
+        .n = "CBOR packed ignore normal CBOR items test",
     },
     {
         .f = test_packed_table_setup_empty_or_unused,

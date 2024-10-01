@@ -630,7 +630,7 @@ int nanocbor_get_uint16(nanocbor_value_t *cvalue, uint16_t *value)
     int res
         = _get_and_advance_uint64(cvalue, &tmp, NANOCBOR_SIZE_SHORT);
 
-    *value = (uint8_t)tmp;
+    *value = (uint16_t)tmp;
 
     return res;
 }
@@ -641,20 +641,14 @@ int nanocbor_get_uint32(nanocbor_value_t *cvalue, uint32_t *value)
     int res
         = _get_and_advance_uint64(cvalue, &tmp, NANOCBOR_SIZE_WORD);
 
-    *value = (uint8_t)tmp;
+    *value = (uint32_t)tmp;
 
     return res;
 }
 
 int nanocbor_get_uint64(nanocbor_value_t *cvalue, uint64_t *value)
 {
-    uint64_t tmp = 0;
-    int res
-        = _get_and_advance_uint64(cvalue, &tmp, NANOCBOR_SIZE_LONG);
-
-    *value = (uint8_t)tmp;
-
-    return res;
+    return _get_and_advance_uint64(cvalue, value, NANOCBOR_SIZE_LONG);
 }
 
 static int _get_and_advance_int64(nanocbor_value_t *cvalue, int64_t *value,
