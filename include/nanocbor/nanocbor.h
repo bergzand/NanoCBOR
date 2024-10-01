@@ -101,6 +101,8 @@ extern "C" {
 #define NANOCBOR_TAG_BIGNUMS_N (0x3) /**< Negative bignum */
 #define NANOCBOR_TAG_DEC_FRAC (0x4) /**< Decimal Fraction */
 #define NANOCBOR_TAG_BIGFLOATS (0x5) /**< Bigfloat */
+#define NANOCBOR_TAG_PACKED_REF_SHARED (0x6) /**< Packed CBOR: reference to shared */
+#define NANOCBOR_TAG_PACKED_TABLE (0x71) /**< Packed CBOR: table setup */
 /** @} */
 
 /**
@@ -137,6 +139,28 @@ typedef enum {
      * @brief Decoder could not find the requested entry
      */
     NANOCBOR_NOT_FOUND = -5,
+
+    /**
+     * @brief Decoder encountered an erroneous packed CBOR encoding
+     * @note only returned when @ref NANOCBOR_DECODE_PACKED_ENABLED is set to 1
+     */
+    NANOCBOR_ERR_PACKED_FORMAT = -6,
+
+    /**
+     * @brief Decoder failed to decode a packed CBOR encoding because it ran out of memory
+     *
+     * This can happen if the nesting level of packed tables
+     * is higher than @ref NANOCBOR_DECODE_PACKED_NESTED_TABLES_MAX.
+     *
+     * @note only returned when @ref NANOCBOR_DECODE_PACKED_ENABLED is set to 1
+     */
+    NANOCBOR_ERR_PACKED_MEMORY = -7,
+
+    /**
+     * @brief Decoder encountered an undefined reference
+     * @note only returned when @ref NANOCBOR_DECODE_PACKED_ENABLED is set to 1
+     */
+    NANOCBOR_ERR_PACKED_UNDEFINED_REFERENCE = -8,
 } nanocbor_error_t;
 
 /**
@@ -146,7 +170,15 @@ typedef struct nanocbor_value {
     const uint8_t *cur; /**< Current position in the buffer             */
     const uint8_t *end; /**< End of the buffer                          */
     uint64_t remaining; /**< Number of items remaining in the container */
-    uint8_t flags; /**< Flags for decoding hints                   */
+    uint8_t flags;      /**< Flags for decoding hints                   */
+#if NANOCBOR_DECODE_PACKED_ENABLED
+    uint8_t num_active_tables;  /**< Number of tables in active table set */
+    /** array of packing table definitions, filled from 0 to NANOCBOR_DECODE_PACKED_NESTED_TABLES_MAX */
+    struct nanocbor_packed_table {
+        const uint8_t *start;   /**< Start of table definition, NULL if non-existent */
+        size_t len;             /**< Length in bytes of table definition */
+    } shared_item_tables[NANOCBOR_DECODE_PACKED_NESTED_TABLES_MAX];
+#endif
 } nanocbor_value_t;
 
 /**
@@ -223,6 +255,16 @@ struct nanocbor_encoder {
  * @brief decoder value is inside an indefinite length container
  */
 #define NANOCBOR_DECODER_FLAG_INDEFINITE (0x02U)
+
+/**
+ * @brief decoder value is at the top level of a packed CBOR shared item
+ */
+#define NANOCBOR_DECODER_FLAG_SHARED (0x04U)
+
+/**
+ * @brief decoder should transparently decode packed CBOR structures
+ */
+#define NANOCBOR_DECODER_FLAG_PACKED_SUPPORT (0x80U)
 /** @} */
 
 /**
@@ -236,12 +278,58 @@ struct nanocbor_encoder {
  *
  * The decoder will attempt to decode CBOR types until the buffer is exhausted
  *
+ * Use @ref nanocbor_decoder_init_packed when packed CBOR support is required.
+ *
  * @param[in]   value   decoder value context
  * @param[in]   buf     Buffer to decode from
  * @param[in]   len     Length in bytes of the buffer
  */
 void nanocbor_decoder_init(nanocbor_value_t *value, const uint8_t *buf,
                            size_t len);
+
+/**
+ * @brief Initialize a decoder context decoding the CBOR structure from @p buf
+ *        with @p len bytes, with transparent decoding support for CBOR packed
+ *
+ * The decoder will attempt to decode CBOR types until the buffer is exhausted
+ *
+ * Use @ref nanocbor_decoder_init when packed CBOR support is not required.
+ * Use @ref nanocbor_decoder_init_packed_table to provide an initial shared
+ * item table.
+ *
+ * @note Note that support for CBOR packed needs to be enabled at compile-time
+ *       using @ref NANOCBOR_DECODE_PACKED_ENABLED
+ *
+ * @param[in]   value       decoder value context
+ * @param[in]   buf         Buffer to decode from
+ * @param[in]   len         Length in bytes of the buffer
+ */
+void nanocbor_decoder_init_packed(nanocbor_value_t *value, const uint8_t *buf,
+                           size_t len);
+
+/**
+ * @brief Initialize a decoder context decoding the CBOR structure from @p buf
+ *        with @p len bytes, with transparent decoding support for CBOR packed
+ *        and an initial shared item table provided in @p table_buf
+ *
+ * The decoder will attempt to decode CBOR types until the buffer is exhausted
+ *
+ * Use @ref nanocbor_decoder_init when packed CBOR support is not required.
+ *
+ * @note Note that support for CBOR packed needs to be enabled at compile-time
+ *       using @ref NANOCBOR_DECODE_PACKED_ENABLED
+ *
+ * @param[in]   value       decoder value context
+ * @param[in]   buf         Buffer to decode from
+ * @param[in]   len         Length in bytes of the buffer
+ * @param[in]   table_buf   Buffer containing initial shared item table, or NULL if none
+ * @param[in]   table_len   Length in bytes of the table buffer
+ *
+ * @return              NANOCBOR_OK on success
+ * @return              negative on error
+ */
+int nanocbor_decoder_init_packed_table(nanocbor_value_t *value, const uint8_t *buf,
+                           size_t len, const uint8_t *table_buf, size_t table_len);
 
 /**
  * @brief Retrieve the type of the CBOR value at the current position
@@ -482,8 +570,11 @@ int nanocbor_enter_map(const nanocbor_value_t *it, nanocbor_value_t *map);
  *
  * @param[in]   it          parent CBOR structure
  * @param[in]   container   exhausted CBOR container
+ *
+ * @return                  NANOCBOR_OK on success
+ * @return                  negative on error
  */
-void nanocbor_leave_container(nanocbor_value_t *it,
+int nanocbor_leave_container(nanocbor_value_t *it,
                               nanocbor_value_t *container);
 
 /**
@@ -687,6 +778,11 @@ nanocbor_map_items_remaining(const nanocbor_value_t *value)
     return nanocbor_container_remaining(value)/2;
 }
 
+static inline bool nanocbor_in_container(const nanocbor_value_t *container)
+{
+    return container->flags & (NANOCBOR_DECODER_FLAG_CONTAINER);
+}
+
 /**
  * @brief Check whether a container is an indefinite-length container
  *
@@ -699,14 +795,8 @@ nanocbor_map_items_remaining(const nanocbor_value_t *value)
 static inline bool
 nanocbor_container_indefinite(const nanocbor_value_t *container)
 {
-    return (container->flags
-            == (NANOCBOR_DECODER_FLAG_INDEFINITE
-                | NANOCBOR_DECODER_FLAG_CONTAINER));
-}
-
-static inline bool nanocbor_in_container(const nanocbor_value_t *container)
-{
-    return container->flags & (NANOCBOR_DECODER_FLAG_CONTAINER);
+    return nanocbor_in_container(container) &&
+        container->flags & (NANOCBOR_DECODER_FLAG_INDEFINITE);
 }
 
 /** @} */
