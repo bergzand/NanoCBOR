@@ -596,7 +596,8 @@ int nanocbor_get_double(nanocbor_value_t *cvalue, double *value);
  * @brief Skip to the next value in the CBOR stream
  *
  * This function is able to skip over nested structures in the CBOR stream
- * such as (nested) arrays and maps. It uses limited recursion to do so.
+ * such as (nested) arrays and maps. For indefinite length containers,
+ * it resorts to limited recursion to do so.
  *
  * Recursion is limited with @ref NANOCBOR_RECURSION_MAX
  *
