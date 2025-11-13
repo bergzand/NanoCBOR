@@ -612,7 +612,7 @@ int nanocbor_skip(nanocbor_value_t *it);
  * @brief Skip a single simple value in the CBOR stream
  *
  * This is a cheaper version of @ref nanocbor_skip, the downside is that this
- * function is unable to skip nested structures.
+ * function is unable to skip nested structures, i.e., tags, maps and arrays.
  *
  * @param[in]   it  CBOR value to skip
  *
