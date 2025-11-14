@@ -24,9 +24,9 @@ static void test_decode_indefinite(void)
     CU_ASSERT_EQUAL(nanocbor_container_indefinite(&cont), true);
 
     /* Decode the three values */
-    CU_ASSERT(nanocbor_get_uint32(&cont, &tmp) > 0);
-    CU_ASSERT(nanocbor_get_uint32(&cont, &tmp) > 0);
-    CU_ASSERT(nanocbor_get_uint32(&cont, &tmp) > 0);
+    CU_ASSERT_EQUAL(nanocbor_get_uint32(&cont, &tmp), NANOCBOR_OK);
+    CU_ASSERT_EQUAL(nanocbor_get_uint32(&cont, &tmp), NANOCBOR_OK);
+    CU_ASSERT_EQUAL(nanocbor_get_uint32(&cont, &tmp), NANOCBOR_OK);
 
     CU_ASSERT_EQUAL(nanocbor_get_uint32(&cont, &tmp), NANOCBOR_ERR_END);
     CU_ASSERT_EQUAL(nanocbor_at_end(&cont), true);
@@ -58,9 +58,9 @@ static void test_decode_map(void)
     /* Init the decoder and verify the decoding of the map elements */
     nanocbor_decoder_init(&val, map_one, sizeof(map_one));
     CU_ASSERT_EQUAL(nanocbor_enter_map(&val, &cont), NANOCBOR_OK);
-    CU_ASSERT(nanocbor_get_uint32(&cont, &tmp) > 0);
+    CU_ASSERT_EQUAL(nanocbor_get_uint32(&cont, &tmp), NANOCBOR_OK);
     CU_ASSERT_EQUAL(tmp, 1);
-    CU_ASSERT(nanocbor_get_uint32(&cont, &tmp) > 0);
+    CU_ASSERT_EQUAL(nanocbor_get_uint32(&cont, &tmp), NANOCBOR_OK);
     CU_ASSERT_EQUAL(tmp, 2);
     CU_ASSERT_EQUAL(nanocbor_at_end(&cont), true);
     CU_ASSERT_EQUAL(nanocbor_leave_container(&val, &cont), NANOCBOR_OK);
@@ -80,33 +80,33 @@ static void test_decode_map(void)
     /* Init decoder and start decoding */
     nanocbor_decoder_init(&val, complex_map_decode, sizeof(complex_map_decode));
     CU_ASSERT_EQUAL(nanocbor_enter_map(&val, &cont), NANOCBOR_OK);
-    CU_ASSERT(nanocbor_get_uint32(&cont, &tmp) > 0);
+    CU_ASSERT_EQUAL(nanocbor_get_uint32(&cont, &tmp), NANOCBOR_OK);
     CU_ASSERT_EQUAL(tmp, 1);
-    CU_ASSERT(nanocbor_get_uint32(&cont, &tmp) > 0);
+    CU_ASSERT_EQUAL(nanocbor_get_uint32(&cont, &tmp), NANOCBOR_OK);
     CU_ASSERT_EQUAL(tmp, 2);
 
-    CU_ASSERT(nanocbor_get_uint32(&cont, &tmp) > 0);
+    CU_ASSERT_EQUAL(nanocbor_get_uint32(&cont, &tmp), NANOCBOR_OK);
     CU_ASSERT_EQUAL(tmp, 3);
     CU_ASSERT_EQUAL(nanocbor_enter_array(&cont, &array), NANOCBOR_OK);
     CU_ASSERT_EQUAL(nanocbor_at_end(&array), true);
     CU_ASSERT_EQUAL(nanocbor_leave_container(&cont, &array), NANOCBOR_OK);
     CU_ASSERT_EQUAL(nanocbor_at_end(&cont), false);
 
-    CU_ASSERT(nanocbor_get_uint32(&cont, &tmp) > 0);
+    CU_ASSERT_EQUAL(nanocbor_get_uint32(&cont, &tmp), NANOCBOR_OK);
     CU_ASSERT_EQUAL(tmp, 4);
     CU_ASSERT_EQUAL(nanocbor_enter_array(&cont, &array), NANOCBOR_OK);
     CU_ASSERT_EQUAL(nanocbor_at_end(&array), true);
     CU_ASSERT_EQUAL(nanocbor_leave_container(&cont, &array), NANOCBOR_OK);
     CU_ASSERT_EQUAL(nanocbor_at_end(&cont), false);
 
-    CU_ASSERT(nanocbor_get_uint32(&cont, &tmp) > 0);
+    CU_ASSERT_EQUAL(nanocbor_get_uint32(&cont, &tmp), NANOCBOR_OK);
     CU_ASSERT_EQUAL(tmp, 5);
     CU_ASSERT_EQUAL(nanocbor_enter_array(&cont, &array), NANOCBOR_OK);
     CU_ASSERT_EQUAL(nanocbor_at_end(&array), true);
     CU_ASSERT_EQUAL(nanocbor_leave_container(&cont, &array), NANOCBOR_OK);
     CU_ASSERT_EQUAL(nanocbor_at_end(&cont), false);
 
-    CU_ASSERT(nanocbor_get_uint32(&cont, &tmp) > 0);
+    CU_ASSERT_EQUAL(nanocbor_get_uint32(&cont, &tmp), NANOCBOR_OK);
     CU_ASSERT_EQUAL(tmp, 6);
     CU_ASSERT_EQUAL(nanocbor_at_end(&cont), false);
     CU_ASSERT_EQUAL(nanocbor_get_null(&cont), NANOCBOR_OK);
@@ -129,10 +129,10 @@ static void test_tag(void)
     CU_ASSERT_EQUAL(nanocbor_get_tag(&cont, &tmp), NANOCBOR_OK);
     CU_ASSERT_EQUAL(tmp, 0x37);
 
-    CU_ASSERT(nanocbor_get_uint32(&cont, &tmp) > 0);
+    CU_ASSERT_EQUAL(nanocbor_get_uint32(&cont, &tmp), NANOCBOR_OK);
     CU_ASSERT_EQUAL(tmp, 1);
 
-    CU_ASSERT(nanocbor_get_uint32(&cont, &tmp) > 0);
+    CU_ASSERT_EQUAL(nanocbor_get_uint32(&cont, &tmp), NANOCBOR_OK);
     CU_ASSERT_EQUAL(tmp, 2);
 
     CU_ASSERT_EQUAL(nanocbor_at_end(&cont), true);
@@ -199,13 +199,13 @@ static void test_decode_basic(void)
     nanocbor_decoder_init(&decoder, &byteval, sizeof(byteval));
     CU_ASSERT_EQUAL(nanocbor_get_type(&decoder), NANOCBOR_TYPE_UINT);
     printf("\"val: %u\"\n", value);
-    CU_ASSERT_EQUAL(nanocbor_get_uint32(&decoder, &value), 1);
+    CU_ASSERT_EQUAL(nanocbor_get_uint32(&decoder, &value), NANOCBOR_OK);
     printf("\"val: %u\"\n", value);
     CU_ASSERT_EQUAL(5, value);
 
     int32_t intval = 0;
     nanocbor_decoder_init(&decoder, &byteval, sizeof(byteval));
-    CU_ASSERT_EQUAL(nanocbor_get_int32(&decoder, &intval), 1);
+    CU_ASSERT_EQUAL(nanocbor_get_int32(&decoder, &intval), NANOCBOR_OK);
     CU_ASSERT_EQUAL(5, intval);
 
     const uint8_t decimal_frac[] = { 0xC4, 0x82, 0x21, 0x19, 0x6a, 0xb3 };
