@@ -520,7 +520,7 @@ int nanocbor_leave_container(nanocbor_value_t *it, nanocbor_value_t *container)
         !nanocbor_at_end(container) ||
         container->cur <= it->cur ||
         container->cur > it->end) {
-        return NANOCBOR_ERR_INVALID_TYPE;
+        return NANOCOBR_PANIC_INVALID_OPERATION;
     }
     if (it->remaining) {
         it->remaining--;
