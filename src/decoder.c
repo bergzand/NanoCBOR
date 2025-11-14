@@ -365,7 +365,7 @@ int nanocbor_get_simple(nanocbor_value_t *cvalue, uint8_t *value)
     if (res == NANOCBOR_ERR_OVERFLOW) {
         res = NANOCBOR_ERR_INVALID_TYPE;
     }
-    return res;
+    return res > 0 ? NANOCBOR_OK : res;
 }
 
 /* float bit mask related defines */
