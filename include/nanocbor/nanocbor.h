@@ -811,6 +811,20 @@ int nanocbor_fmt_tag(nanocbor_encoder_t *enc, uint64_t num);
 int nanocbor_fmt_int(nanocbor_encoder_t *enc, int64_t num);
 
 /**
+ * @brief Write a CBOR simple value into the encoder buffer
+ *
+ * Disallows assigned and reserved simple values between 20 and 31.
+ * Please use the respective functions for emitting true, false, undefined, and null.
+ *
+ * @param[in]   enc     Encoder context
+ * @param[in]   value   Simple value to write
+ *
+ * @return              Number of bytes written
+ * @return              Negative on error
+ */
+int nanocbor_fmt_simple(nanocbor_encoder_t *enc, uint8_t value);
+
+/**
  * @brief Write a byte string indicator for a byte string with specific length
  * into the encoder buffer
  *
@@ -944,6 +958,16 @@ int nanocbor_fmt_end_indefinite(nanocbor_encoder_t *enc);
  * @return              Negative on error
  */
 int nanocbor_fmt_null(nanocbor_encoder_t *enc);
+
+/**
+ * @brief Write an Undefined value into the encoder buffer
+ *
+ * @param[in]   enc     Encoder context
+ *
+ * @return              NANOCBOR_OK
+ * @return              Negative on error
+ */
+int nanocbor_fmt_undefined(nanocbor_encoder_t *enc);
 
 /**
  * @brief Write a float value into the encoder buffer
