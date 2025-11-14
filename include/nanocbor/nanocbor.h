@@ -137,6 +137,13 @@ typedef enum {
      * @brief Decoder could not find the requested entry
      */
     NANOCBOR_NOT_FOUND = -5,
+
+    /**
+     * @brief Decoder detected wrong usage, e.g., leaving a container
+     *        before reaching its end. This is a programming mistake
+     *        and can be asserted upon by the caller.
+     */
+    NANOCOBR_PANIC_INVALID_OPERATION = -6,
 } nanocbor_error_t;
 
 /**
@@ -482,8 +489,11 @@ int nanocbor_enter_map(const nanocbor_value_t *it, nanocbor_value_t *map);
  *
  * @param[in]   it          parent CBOR structure
  * @param[in]   container   exhausted CBOR container
+ *
+ * @return                  NANOCBOR_OK on success
+ * @return                  NANOCBOR_PANIC_INVALID_OPERATION on detection of wrong usage
  */
-void nanocbor_leave_container(nanocbor_value_t *it,
+int nanocbor_leave_container(nanocbor_value_t *it,
                               nanocbor_value_t *container);
 
 /**
