@@ -299,6 +299,19 @@ int nanocbor_get_decimal_frac(nanocbor_value_t *cvalue, int32_t *e, int32_t *m)
     return res;
 }
 
+/**
+ * FIX: The original _get_str() had a bounds check that only validated the
+ * string payload length (*len) against the remaining buffer, but did NOT
+ * account for the CBOR header bytes (res) that precede the payload.
+ *
+ * The string data starts at cvalue->cur + res, so the total bytes consumed
+ * from cur is (res + *len). The old check only verified *len <= (end - cur),
+ * allowing up to 8 bytes of out-of-bounds read on 64-bit platforms.
+ *
+ * The fix:
+ *   1. Return early if _get_uint64() fails (res < 0).
+ *   2. Check (size_t)res + *len <= (end - cur) instead of just *len.
+ */
 static int _get_str(nanocbor_value_t *cvalue, const uint8_t **buf, size_t *len,
                     uint8_t type)
 {
@@ -306,10 +319,6 @@ static int _get_str(nanocbor_value_t *cvalue, const uint8_t **buf, size_t *len,
     int res = _get_uint64(cvalue, &tmp, NANOCBOR_SIZE_SIZET, type);
     *len = tmp;
 
-    if (cvalue->end - cvalue->cur < 0
-        || (size_t)(cvalue->end - cvalue->cur) < *len) {
-        return NANOCBOR_ERR_END;
-    }
     if (res < 0) {
         return res;
     }
@@ -317,7 +326,9 @@ static int _get_str(nanocbor_value_t *cvalue, const uint8_t **buf, size_t *len,
         || (size_t)(cvalue->end - cvalue->cur) < (size_t)res + *len) {
         return NANOCBOR_ERR_END;
     }
-    return res;
+    *buf = (cvalue->cur) + res;
+    _advance(cvalue, (unsigned int)((size_t)res + *len));
+    return NANOCBOR_OK;
 }
 
 int nanocbor_get_bstr(nanocbor_value_t *cvalue, const uint8_t **buf,
