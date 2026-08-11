@@ -36,10 +36,20 @@ static void _advance(nanocbor_value_t *cvalue, unsigned int res)
     cvalue->remaining--;
 }
 
+/**
+ * @brief Advance @p cvalue and return @ref NANOCBOR_OK if @p res > 0.
+ *        Propagate error otherwise.
+ *
+ * @param    cvalue     CBOR value to advance
+ * @param    res        positive number of bytes to advance, or error code
+ * @return              NANOCBOR_OK on success
+ * @return              negative on error
+ */
 static int _advance_if(nanocbor_value_t *cvalue, int res)
 {
     if (res > 0) {
         _advance(cvalue, (unsigned int)res);
+        return NANOCBOR_OK;
     }
     return res;
 }
