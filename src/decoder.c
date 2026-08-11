@@ -12,6 +12,7 @@
  * @}
  */
 
+#include <endian.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -19,8 +20,6 @@
 
 #include "nanocbor/config.h"
 #include "nanocbor/nanocbor.h"
-
-#include NANOCBOR_BYTEORDER_HEADER
 
 void nanocbor_decoder_init(nanocbor_value_t *value, const uint8_t *buf,
                            size_t len)
@@ -128,7 +127,7 @@ static int _get_uint64(const nanocbor_value_t *cvalue, uint64_t *value,
     memcpy(((uint8_t *)&tmp) + sizeof(uint64_t) - bytes, cvalue->cur + 1U,
            bytes);
     /* NOLINTNEXTLINE: user supplied function */
-    tmp = NANOCBOR_BE64TOH_FUNC(tmp);
+    tmp = be64toh(tmp);
     *value = 0;
     memcpy(value, &tmp, bytes);
 
@@ -614,7 +613,7 @@ static int _skip_limited(nanocbor_value_t *it, uint8_t limit)
             uint64_t len = 0;
             res = _check_upcoming_container_length(it, &len, type);
             if (res == NANOCBOR_ERR_INDEFINITE) {
-                /* cannot handle indefinite-length containers linearily,
+                /* cannot handle indefinite-length containers linearly,
                  * use stack (recursion) instead */
                 nanocbor_value_t recurse;
                 res = _enter_container(it, &recurse, type);
