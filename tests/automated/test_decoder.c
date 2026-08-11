@@ -295,6 +295,29 @@ static void test_decode_skip(void)
     _decode_skip(test_map_indefinite_nested2, sizeof(test_map_indefinite_nested2), false);
 }
 
+static void test_issue_56(void)
+{
+    static const uint8_t input[] = {
+        0xa2,
+        0x64, 'k', 'e', 'y', '1',
+        0x66, 'v', 'a', 'l', 'u', 'e', '1',
+        0x64, 'k', 'e', 'y', '2',
+        0x66, 'v', 'a', 'l', 'u', 'e', '2',
+    };
+
+    nanocbor_value_t val;
+    nanocbor_value_t map;
+    nanocbor_value_t value;
+
+    nanocbor_decoder_init(&val, input, sizeof(input));
+
+    CU_ASSERT_EQUAL(nanocbor_enter_map(&val, &map), NANOCBOR_OK);
+    CU_ASSERT_NOT_EQUAL(
+        nanocbor_get_key_tstr(&map, "key3", &value),
+        NANOCBOR_OK
+    );
+}
+
 const test_t tests_decoder[] = {
     {
         .f = test_decode_none,
@@ -323,6 +346,10 @@ const test_t tests_decoder[] = {
     {
         .f = test_decode_skip,
         .n = "CBOR skip test",
+    },
+    {
+        .f = test_issue_56,
+        .n = "Regression test for GitHub issue 56",
     },
     {
         .f = NULL,

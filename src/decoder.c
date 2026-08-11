@@ -700,6 +700,7 @@ int nanocbor_get_key_tstr(nanocbor_value_t *start, const char *key,
         if (res < 0) {
             break;
         }
+        res = NANOCBOR_NOT_FOUND;
     }
 
     return res;
