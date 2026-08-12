@@ -663,7 +663,7 @@ int nanocbor_get_subcbor(nanocbor_value_t *it, const uint8_t **start,
 static inline uint32_t
 nanocbor_container_remaining(const nanocbor_value_t *value)
 {
-    return value->remaining;
+    return (uint32_t)value->remaining;
 }
 
 /**

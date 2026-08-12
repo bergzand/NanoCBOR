@@ -33,8 +33,37 @@ extern "C" {
  * @brief library providing htonll, be64toh or equivalent. Must also provide
  * the reverse operation (ntohll, htobe64 or equivalent)
  */
-#ifndef NANOCBOR_BYTEORDER_HEADER
-#define NANOCBOR_BYTEORDER_HEADER "endian.h"
+#ifdef NANOCBOR_BYTEORDER_HEADER
+	#include NANOCBOR_BYTEORDER_HEADER
+#elif defined(_MSC_VER)
+	#define htobe32(x) _byteswap_ulong(x)
+	#define htole32(x) (x)
+	#define be32toh(x) _byteswap_ulong(x)
+	#define le32toh(x) (x)
+	#define htobe64(x) _byteswap_uint64(x)
+	#define htole64(x) (x)
+	#define be64toh(x) _byteswap_uint64(x)
+	#define le64toh(x) (x)
+#elif defined(__BYTE_ORDER__) && (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)
+	#define htobe32(x) __builtin_bswap32(x)
+	#define htole32(x) (x)
+	#define be32toh(x) __builtin_bswap32(x)
+	#define le32toh(x) (x)
+	#define htobe64(x) __builtin_bswap64(x)
+	#define htole64(x) (x)
+	#define be64toh(x) __builtin_bswap64(x)
+	#define le64toh(x) (x)
+#elif defined(__BYTE_ORDER__) && (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
+	#define htobe32(x) (x)
+	#define htole32(x) __builtin_bswap32(x)
+	#define be32toh(x) (x)
+	#define le32toh(x) __builtin_bswap32(x)
+	#define htobe64(x) (x)
+	#define htole64(x) __builtin_bswap64(x)
+	#define be64toh(x) (x)
+	#define le64toh(x) __builtin_bswap64(x)
+#else
+	#include "endian.h"
 #endif
 
 /**
@@ -77,6 +106,11 @@ extern "C" {
 #else
 #error ERROR: unable to determine maximum size of size_t
 #endif
+#endif
+
+#if defined(_MSC_VER) && !defined(__SIZEOF_DOUBLE__)
+#define __SIZEOF_DOUBLE__ 8
+#define __SIZEOF_FLOAT__ 4
 #endif
 
 #ifdef __cplusplus

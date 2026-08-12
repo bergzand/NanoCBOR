@@ -20,8 +20,6 @@
 #include "nanocbor/config.h"
 #include "nanocbor/nanocbor.h"
 
-#include NANOCBOR_BYTEORDER_HEADER
-
 void nanocbor_decoder_init(nanocbor_value_t *value, const uint8_t *buf,
                            size_t len)
 {
@@ -160,7 +158,7 @@ static int _get_and_advance_uint32(nanocbor_value_t *cvalue, uint32_t *value,
 {
     uint64_t tmp = 0;
     int res = _get_uint64(cvalue, &tmp, NANOCBOR_SIZE_WORD, type);
-    *value = tmp;
+    *value = (uint32_t)tmp;
 
     return _advance_if(cvalue, res);
 }
@@ -452,7 +450,7 @@ static int _decode_float(nanocbor_value_t *cvalue, float *value)
     int res
         = _get_uint64(cvalue, &tmp, NANOCBOR_SIZE_WORD, NANOCBOR_TYPE_FLOAT);
     if (res == 1 + sizeof(uint32_t)) {
-        uint32_t ifloat = tmp;
+        uint32_t ifloat = (uint32_t)tmp;
         memcpy(value, &ifloat, sizeof(uint32_t));
         return _advance_if(cvalue, res);
     }

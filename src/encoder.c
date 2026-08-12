@@ -20,8 +20,6 @@
 #include "nanocbor/config.h"
 #include "nanocbor/nanocbor.h"
 
-#include NANOCBOR_BYTEORDER_HEADER
-
 /* memarray functions */
 static bool _encoder_mem_fits(nanocbor_encoder_t *enc, void *ctx, size_t len)
 {
@@ -97,7 +95,7 @@ int nanocbor_fmt_bool(nanocbor_encoder_t *enc, bool content)
 
 static int _fmt_uint64(nanocbor_encoder_t *enc, uint64_t num, uint8_t type)
 {
-    unsigned extrabytes = 0;
+    size_t extrabytes = 0;
 
     if (num < NANOCBOR_SIZE_BYTE) {
         type |= num;
@@ -294,7 +292,7 @@ static bool _single_in_range(uint8_t exp, uint32_t num)
     /* Check if lower 13 bits of fraction are zero, if so we might be able to
      * convert without precision loss */
     if (exp <= (HALF_EXP_OFFSET + FLOAT_EXP_OFFSET)
-        && exp >= ((-HALF_EXP_OFFSET + 1) + FLOAT_EXP_OFFSET)
+        && exp >= (FLOAT_EXP_OFFSET - HALF_EXP_OFFSET + 1)
         && ((num & FLOAT_HALF_LOSS) == 0)) {
         return true;
     }
@@ -354,7 +352,7 @@ int nanocbor_fmt_float(nanocbor_encoder_t *enc, float num)
         uint16_t half = ((*unum >> (FLOAT_SIZE - HALF_SIZE)) & HALF_SIGN_MASK);
         /* Shift exponent */
         if (exp != FLOAT_EXP_IS_NAN && exp != 0) {
-            exp = exp + (uint8_t)(HALF_EXP_OFFSET - FLOAT_EXP_OFFSET);
+            exp = exp - (FLOAT_EXP_OFFSET - HALF_EXP_OFFSET);
         }
         /* Add exponent */
         half |= ((exp & HALF_EXP_MASK) << HALF_EXP_POS)
@@ -391,7 +389,7 @@ int nanocbor_fmt_double(nanocbor_encoder_t *enc, double num)
             exp = exp + FLOAT_EXP_OFFSET - DOUBLE_EXP_OFFSET;
         }
         single |= ((exp & FLOAT_EXP_MASK) << FLOAT_EXP_POS)
-            | ((*unum >> (DOUBLE_EXP_POS - FLOAT_EXP_POS)) & FLOAT_FRAC_MASK);
+            | (uint32_t)((*unum >> (DOUBLE_EXP_POS - FLOAT_EXP_POS)) & FLOAT_FRAC_MASK);
         float *fsingle = (float *)&single;
         return nanocbor_fmt_float(enc, *fsingle);
     }
