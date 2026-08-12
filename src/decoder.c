@@ -304,18 +304,34 @@ static int _get_str(nanocbor_value_t *cvalue, const uint8_t **buf, size_t *len,
 {
     uint64_t tmp = 0;
     int res = _get_uint64(cvalue, &tmp, NANOCBOR_SIZE_SIZET, type);
-    *len = tmp;
 
-    if (cvalue->end - cvalue->cur < 0
-        || (size_t)(cvalue->end - cvalue->cur) < *len) {
+    if (res < 0) {
+        return res;
+    }
+
+    /* `_advance()` has `unsigned` as argument. On 8-bit and 16-bit systems
+     * overflowing `unsigned int` is practical, so we use directly the target
+     * type for length in advance to catch an overflow here. */
+    unsigned advance_len;
+    if (__builtin_add_overflow(res, tmp, &advance_len)) {
         return NANOCBOR_ERR_END;
     }
-    if (res >= 0) {
-        *buf = (cvalue->cur) + res;
-        _advance(cvalue, (unsigned int)((size_t)res + *len));
-        res = NANOCBOR_OK;
+    /* if cvalue->cur is close to the end of the address space, adding
+     * advance_len may cause the addition to wrap around. Let's test again for
+     * overflows to be sure */
+    uintptr_t new_end;
+    if (__builtin_add_overflow((uintptr_t)cvalue->cur, advance_len, &new_end)) {
+        return NANOCBOR_ERR_END;
     }
-    return res;
+    /* now with all the footguns defused, the actual overflow check is simple */
+    if (new_end > (uintptr_t)cvalue->end) {
+        return NANOCBOR_ERR_END;
+    }
+
+    *buf = (cvalue->cur) + res;
+    _advance(cvalue, advance_len);
+    *len = tmp;
+    return NANOCBOR_OK;
 }
 
 int nanocbor_get_bstr(nanocbor_value_t *cvalue, const uint8_t **buf,

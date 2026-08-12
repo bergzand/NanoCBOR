@@ -318,6 +318,24 @@ static void test_issue_56(void)
     );
 }
 
+static void test_issue_101(void)
+{
+    static const uint8_t input[] =  {
+        0x5b,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x09,
+        0xaa,
+    };
+
+    nanocbor_value_t val;
+
+    nanocbor_decoder_init(&val, input, sizeof(input));
+
+    const uint8_t *ptr = NULL;
+    size_t len = 0;
+    int res = nanocbor_get_bstr(&val, &ptr, &len);
+    CU_ASSERT_EQUAL(res, NANOCBOR_ERR_END);
+}
+
 const test_t tests_decoder[] = {
     {
         .f = test_decode_none,
@@ -350,6 +368,10 @@ const test_t tests_decoder[] = {
     {
         .f = test_issue_56,
         .n = "Regression test for GitHub issue 56",
+    },
+    {
+        .f = test_issue_101,
+        .n = "Regression test for GitHub issue #101",
     },
     {
         .f = NULL,
