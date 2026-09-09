@@ -663,6 +663,9 @@ static int _skip_limited(nanocbor_value_t *it, uint8_t limit)
                 return NANOCBOR_ERR_OVERFLOW;
             }
             skip += len - 1;
+            /* correct for the wrongful remaining decrement
+             * caused by the children advances */
+            it->remaining += len;
             continue;
         }
         else if (type == NANOCBOR_TYPE_TAG) {
