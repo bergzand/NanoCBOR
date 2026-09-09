@@ -295,6 +295,30 @@ static void test_decode_skip(void)
     _decode_skip(test_map_indefinite_nested2, sizeof(test_map_indefinite_nested2), false);
 }
 
+/* Skipping a tagged item inside a definite-length container must consume
+ * exactly one item of that container: tag and content are a single item */
+static void test_skip_tag_in_container(void)
+{
+    /* [55(1), 2] */
+    static const uint8_t tagged[] = { 0x82, 0xd8, 0x37, 0x01, 0x02 };
+
+    nanocbor_value_t val;
+    nanocbor_value_t cont;
+
+    uint32_t tmp = 0;
+
+    nanocbor_decoder_init(&val, tagged, sizeof(tagged));
+    CU_ASSERT_EQUAL(nanocbor_enter_array(&val, &cont), NANOCBOR_OK);
+    CU_ASSERT_EQUAL(nanocbor_skip(&cont), NANOCBOR_OK);
+    CU_ASSERT_EQUAL(nanocbor_container_remaining(&cont), 1);
+    CU_ASSERT_EQUAL(nanocbor_at_end(&cont), false);
+    CU_ASSERT(nanocbor_get_uint32(&cont, &tmp) > 0);
+    CU_ASSERT_EQUAL(tmp, 2);
+    CU_ASSERT_EQUAL(nanocbor_at_end(&cont), true);
+    CU_ASSERT_EQUAL(nanocbor_leave_container(&val, &cont), NANOCBOR_OK);
+    CU_ASSERT_EQUAL(nanocbor_at_end(&val), true);
+}
+
 static void test_issue_56(void)
 {
     static const uint8_t input[] = {
@@ -364,6 +388,10 @@ const test_t tests_decoder[] = {
     {
         .f = test_decode_skip,
         .n = "CBOR skip test",
+    },
+    {
+        .f = test_skip_tag_in_container,
+        .n = "CBOR skip tag inside definite container test",
     },
     {
         .f = test_issue_56,
