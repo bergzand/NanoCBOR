@@ -662,15 +662,17 @@ static int _skip_limited(nanocbor_value_t *it, uint8_t limit)
                 return NANOCBOR_ERR_OVERFLOW;
             }
             skip += len - 1;
+            /* correct for the wrongful remaining decrement
+             * caused by the children advances */
+            it->remaining += len;
             continue;
         }
         else if (type == NANOCBOR_TYPE_TAG) {
-            uint64_t tmp = 0;
-            int res = _get_uint64(it, &tmp, NANOCBOR_SIZE_WORD, type);
+            uint32_t tmp = 0;
+            res = nanocbor_get_tag(it, &tmp);
             if (res < 0) {
                 return res;
             }
-            _advance(it, res);
             /* do not decrement skip as tag content still needs to be skipped, too */
             continue;
         }
