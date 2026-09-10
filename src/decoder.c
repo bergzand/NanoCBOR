@@ -256,15 +256,25 @@ int nanocbor_get_int64(nanocbor_value_t *cvalue, int64_t *value)
     return _get_and_advance_int64(cvalue, value, NANOCBOR_SIZE_LONG, INT64_MAX);
 }
 
-int nanocbor_get_tag(nanocbor_value_t *cvalue, uint32_t *tag)
+static int _get_tag(nanocbor_value_t *cvalue, uint64_t *tag, uint8_t max)
 {
-    uint64_t tmp = 0;
-    int res = _get_uint64(cvalue, &tmp, NANOCBOR_SIZE_WORD, NANOCBOR_TYPE_TAG);
+    int res = _get_uint64(cvalue, tag, max, NANOCBOR_TYPE_TAG);
 
     if (res >= 0) {
+        /* A tag is not a data item of its own:
+         * tag and content together form one item,
+         * so `remaining` is left for the content to decrement */
         cvalue->cur += res;
         res = NANOCBOR_OK;
     }
+
+    return res;
+}
+
+int nanocbor_get_tag(nanocbor_value_t *cvalue, uint32_t *tag)
+{
+    uint64_t tmp = 0;
+    int res = _get_tag(cvalue, &tmp, NANOCBOR_SIZE_WORD);
     *tag = (uint32_t)tmp;
 
     return res;
@@ -272,7 +282,7 @@ int nanocbor_get_tag(nanocbor_value_t *cvalue, uint32_t *tag)
 
 int nanocbor_get_tag64(nanocbor_value_t *cvalue, uint64_t *tag)
 {
-    return _get_and_advance_uint64(cvalue, tag, NANOCBOR_TYPE_TAG);
+    return _get_tag(cvalue, tag, NANOCBOR_SIZE_LONG);
 }
 
 int nanocbor_get_decimal_frac(nanocbor_value_t *cvalue, int32_t *e, int32_t *m)
